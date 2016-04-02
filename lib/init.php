@@ -1,5 +1,13 @@
 <?php
-
+/**
+ * CMB2_Group_Map
+ *
+ * @todo Make this work for other destination object types
+ * @todo Document this file/methods, etc
+ * @todo Add README.md
+ * @todo Add JS which adds button for removing the mapped object from DB
+ * @todo Hook up removal
+ */
 class CMB2_Group_Map {
 
 	protected static $single_instance = null;
