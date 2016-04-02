@@ -1,120 +1,196 @@
 <?php
 /**
- * CMB2_Group_Post_Map_Get
+ * CMB2_Group_Post_Map_Set
  */
 class CMB2_Group_Post_Map_Set {
 
+	/**
+	 * CMB2_Field
+	 *
+	 * @var CMB2_Field
+	 */
 	protected $group_field;
+
+	/**
+	 * Group field value to save
+	 *
+	 * @var mixed
+	 */
 	protected $value;
 
+	/**
+	 * Constructor
+	 *
+	 * @since 0.1.0
+	 *
+	 * @param CMB2_Field $group_field
+	 * @param mixed      $value       Value to save.
+	 */
 	function __construct( CMB2_Field $group_field, $value ) {
 		$this->group_field = $group_field;
 		$this->value = $value;
 	}
 
+	/**
+	 * Handles saving the group field value out to individual CPT posts.
+	 * Calls 'cmb2_group_post_map_posts_updated' hook.
+	 *
+	 * @since  0.1.0
+	 */
 	public function save() {
-		if ( empty( $this->value ) ) {
-			return $this->remove_post_connections();
-		}
-
-		$original_post_id = $this->group_field->object_id;
-		$original_post_status = get_post_status( $original_post_id );
-		$field_id         = $this->group_field->id( true );
-		$destination_cpt  = $this->group_field->args( 'post_type_map' );
-		$fields           = array();
-		$form_data        = isset( $_POST[ $field_id ] ) ? $_POST[ $field_id ] : array();
-
-		$count = 0;
-		foreach ( (array) $this->group_field->args( 'fields' ) as $field ) {
-			$field = new CMB2_Field( array(
-				'field_args'  => $field,
-				'group_field' => $this->group_field,
-			) );
-
-			$fields[ $field->id( true ) ] = $field;
-			$count++;
-		}
-
 		$posts = array();
 
-		foreach ( $this->value as $index => $clean_array ) {
+		if ( ! empty( $this->value ) ) {
 
-			$post_data = $this->get_post_data( $fields, $clean_array, $form_data[ $index ] );
-			$post_data['post_type'] = $destination_cpt;
-			$post_data['post_status'] = $original_post_status;
-			$post_data['post_parent'] = $original_post_id;
-			$post_data['ID'] = isset( $post_data['ID'] ) ? $post_data['ID'] : 0;
+			$group_field    = $this->group_field;
+			$parent_post_id = $group_field->object_id;
+			$field_id       = $group_field->id( true );
+			$fields         = array();
+			$form_data      = isset( $_POST[ $field_id ] ) ? $_POST[ $field_id ] : array();
 
-			if ( $post_data['ID'] && get_post( $post_data['ID'] ) ) {
+			$count = 0;
+			foreach ( (array) $group_field->args( 'fields' ) as $field_args ) {
+				$field = new CMB2_Field( array(
+					'field_args'  => $field_args,
+					'group_field' => $group_field,
+				) );
 
-				$posts[ $index ] = wp_update_post( $post_data );
+				$fields[ $field->id( true ) ] = $field;
+				$count++;
+			}
 
-			} else {
-				if ( isset( $post_data['ID'] ) ) {
-					unset( $post_data['ID'] );
-				}
+			foreach ( $this->value as $index => $clean ) {
+				$data = $this->post_data( $fields, $clean, $form_data[ $index ] );
 
-				$post_data = $this->get_post_data( $fields, $clean_array, $form_data[ $index ] );
-				// wp_die( '<xmp>$post_data: '. print_r( $post_data, true ) .'</xmp>' );
-
-				if ( ! empty( $post_data ) ) {
-					$posts[ $index ] = wp_insert_post( $post_data );
+				if ( $post_id = $this->update_or_insert( $data ) ) {
+					$posts[ $index ] = $post_id;
 				}
 			}
 		}
 
-		do_action( 'cmb2_group_post_map_posts_updated', $posts, $original_post_id, $this->group_field );
-
+		// Trigger an action after posts were updated/created
+		do_action( 'cmb2_group_post_map_posts_updated', $posts, $parent_post_id, $group_field );
 	}
 
-	protected function get_post_data( $fields, $clean_values, $unclean ) {
+	/**
+	 * The post data for a post import.
+	 *
+	 * @since  0.1.0
+	 *
+	 * @param  array  $fields     Array of group sub-fields.
+	 * @param  array  $clean_vals Array of CMB2-cleaned values for this post/group.
+	 * @param  array  $unclean    Array of $_POST values for the group.
+	 *
+	 * @return array              Array of post data for the import
+	 */
+	protected function post_data( $fields, $clean_vals, $unclean ) {
 		$post_data = array();
-		foreach ( $unclean as $sub_field_id => $unclean_value ) {
-			if ( ! isset( $fields[ $sub_field_id ] ) ) {
-				continue;
-			}
 
-			// Field object
-			$field = $fields[ $sub_field_id ];
-			$clean_value = false;
+		foreach ( $fields as $sub_field_id => $field ) {
+			$unclean_value = isset( $unclean[ $sub_field_id ] )
+				? $unclean[ $sub_field_id ]
+				: null;
 
-			if ( ! isset( $clean_values[ $sub_field_id ] ) ) {
-				if ( $field->args( 'taxonomy' ) ) {
-					$clean_value = is_array( $unclean_value ) ? array_map( 'sanitize_text_field', $unclean_value ) : sanitize_text_field( $unclean_value );
-				} elseif ( 'ID' === $field->id( true ) ) {
-					$post_data['ID'] = absint( $unclean_value );
-				}
-			} else {
-				$clean_value = $clean_values[ $sub_field_id ];
-			}
+			$post_data = $this->add_field_data(
+				$post_data,
+				$field,
+				$clean_vals,
+				$unclean_value
+			);
+		}
 
-			if ( ! $clean_value ) {
-				// Could not a find a clean value?!
-				continue;
-			}
-
-			// If the field id matches a post field
-			if ( in_array( $field->id( true ), CMB2_Group_Post_Map::$post_fields, 1 ) ) {
-
-				// Then apply it directly.
-				$post_data[ $field->id( true ) ] = $clean_value;
-			}
-			// If the field has a taxonomy parameter, then set value to that taxonomy
-			elseif ( $field->args( 'taxonomy' ) ) {
-				$post_data['tax_input'][ $field->args( 'taxonomy' ) ] = $clean_value;
-			}
-			// And finally, apply the data to the post as post meta.
-			else {
-				$post_data['meta_input'][ $field->id( true ) ] = $clean_value;
-			}
+		// Set some default post data params
+		if ( ! empty( $post_data ) ) {
+			$post_data['post_type']   = $this->group_field->args( 'post_type_map' );
+			$post_data['post_status'] = get_post_status( $this->group_field->object_id );
+			$post_data['post_parent'] = $this->group_field->object_id;
+			$post_data['ID']          = isset( $post_data['ID'] ) ? $post_data['ID'] : 0;
 		}
 
 		return $post_data;
 	}
 
-	public function remove_post_connections() {
-		throw new Exception( 'hey, fix this: '. __METHOD__ );
+	/**
+	 * Add data from the fields to the array of post data.
+	 *
+	 * @since 0.1.0
+	 *
+	 * @param array      $post_data  Array of post data for the import.
+	 * @param CMB2_Field $field      Sub-field object.
+	 * @param array      $clean_vals Array of CMB2-cleaned values for this post/group.
+	 * @param mixed      $unclean    $_POST value for this field.
+	 *
+	 * @return array                 Maybe-modified Array of post data for the import.
+	 */
+	public function add_field_data( $post_data, $field, $clean_vals, $unclean ) {
+		$clean_val = false;
+		$field_id    = $field->id( true );
+		$taxonomy    = $field->args( 'taxonomy' );
+
+		if ( 'ID' === $field_id ) {
+
+			// $unclean value is the post ID.
+			$clean_val = absint( $unclean );
+
+		} elseif ( $taxonomy ) {
+
+			// Get taxonomy values from the $_POST data, and clean them.
+			$clean_val = is_array( $unclean ) ? array_map( 'sanitize_text_field', $unclean ) : sanitize_text_field( $unclean );
+
+		} elseif ( isset( $clean_vals[ $field_id ] ) ) {
+			$clean_val = $clean_vals[ $field_id ];
+		}
+
+		if ( ! $clean_val ) {
+			// Could not a find a clean value?!
+			return $post_data;
+		}
+
+		// If the field id matches a post field
+		if ( isset( CMB2_Group_Post_Map::$post_fields[ $field_id ] ) ) {
+
+			// Then apply it directly.
+			$post_data[ $field_id ] = $clean_val;
+		} elseif ( $taxonomy ) {
+
+			// If the field has a taxonomy parameter, then set value to that taxonomy
+			$post_data['tax_input'][ $taxonomy ] = $clean_val;
+
+		} else {
+
+			// And finally, apply the rest as post meta.
+			$post_data['meta_input'][ $field_id ] = $clean_val;
+		}
+
+		return $post_data;
 	}
 
+	/**
+	 * If the post data array is not empty, either create or update a post
+	 * in the mapped post-type.
+	 *
+	 * @since  0.1.0
+	 *
+	 * @param  array $data Array of post data for the import.
+	 *
+	 * @return mixed       Result of wp_update_post, wp_insert_post or is false if no data.
+	 */
+	protected function update_or_insert( $data ) {
+		if ( empty( $data ) ) {
+			return false;
+		}
+
+		// Update post?
+		if ( isset( $data['ID'] ) && $data['ID'] && get_post( $data['ID'] ) ) {
+			return wp_update_post( $data );
+		}
+
+		if ( isset( $data['ID'] ) ) {
+			unset( $data['ID'] );
+		}
+
+		// Or create it?
+		return wp_insert_post( $data );
+	}
 
 }

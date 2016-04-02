@@ -4,52 +4,124 @@
  */
 class CMB2_Group_Post_Map_Get {
 
+	/**
+	 * A registry array for instances of this class.
+	 *
+	 * @var array
+	 */
 	protected static $getters = array();
 
+	/**
+	 * CMB2_Field
+	 *
+	 * @var CMB2_Field
+	 */
 	protected $group_field;
+
+	/**
+	 * Array of mapped post ids for this post.
+	 *
+	 * @var array
+	 */
 	protected $post_ids = array();
+
+	/**
+	 * Copy of $post_ids, manipulated for term-checking.
+	 *
+	 * @var array
+	 */
 	protected $term_post_ids = array();
+
+	/**
+	 * The current post id for term-checking.
+	 *
+	 * @var null
+	 */
 	protected $term_post_id = null;
-	public $value = null;
+
+	/**
+	 * Retrieved value array.
+	 *
+	 * @var null
+	 */
+	protected $value = null;
+
+	/**
+	 * Retrieved term array.
+	 *
+	 * @var null
+	 */
 	protected $terms = null;
-	protected $key = 0;
+
+	/**
+	 * The current post object during post iteration.
+	 *
+	 * @var null
+	 */
 	protected $post = null;
 
-	public static function get_value( $field ) {
-
+	/**
+	 * Get the array of values for a group field or the value for
+	 * a group field's sub-fields. Data is retrieved from the mapped post object.
+	 *
+	 * @since  0.1.0
+	 *
+	 * @param  CMB2_Field $field Group field, or group sub-field object.
+	 *
+	 * @return mixed             Group or sub-field's value.
+	 */
+	public static function get_value( CMB2_Field $field ) {
 		$field_id = $field->group ? $field->group->id() : $field->id();
 
 		if ( 'group' !== $field->type() ) {
-
 			if ( ! $field->group ) {
-				trigger_error( __METHOD__ . ' only works with group fields.' );
-				return '';
+				return $this->trigger_warning( __METHOD__ . ' only works with group fields.' );
 			}
-
 
 			if ( ! isset( self::$getters[ $field_id ] ) ) {
-				trigger_error( 'something went wrong! The group field should have already setup the object.' );
-				return '';
+				return $this->trigger_warning( 'Something went wrong! The group field needs to have already set up the object.' );
 			}
 
-			return self::$getters[ $field_id ]->get_subfield_value( $field );
+			$getter = self::$getters[ $field_id ];
+			$value  = $getter->subfield_value( $field );
+
+			// Return filtered value.
+			return apply_filters( 'cmb2_group_post_map_get_subfield_value', $value, $getter, $field );
 		}
 
 		if ( ! isset( self::$getters[ $field_id ] ) ) {
-			self::$getters[ $field_id ] = new CMB2_Group_Post_Map_Get( $field );
+			self::$getters[ $field_id ] = new self( $field );
 		}
 
-		return self::$getters[ $field_id ]->get_group_field_value();
+		$getter = self::$getters[ $field_id ];
+		$value  = $getter->group_field_value();
+
+		// Return filtered value.
+		return apply_filters( 'cmb2_group_post_map_get_group_field_value', $value, $getter );
 	}
 
+	/**
+	 * Constructor. Setup the getter object.
+	 *
+	 * @since 0.1.0
+	 *
+	 * @param CMB2_Field $group_field Group field to get the values for.
+	 */
 	function __construct( CMB2_Field $group_field ) {
-		$this->group_field   = $group_field;
-		$this->post_ids      = get_post_meta( $group_field->object_id, $this->group_field->id( true ), 1 );
+		$this->group_field = $group_field;
+		$this->post_ids    = get_post_meta( $group_field->object_id, $this->group_field->id( true ), 1 );
 		// Need a separate post id array for taxonomy term value caching
 		$this->term_post_ids = $this->post_ids;
 	}
 
-	public function get_group_field_value() {
+	/**
+	 * Get the group field value
+	 *
+	 * @since  0.1.0
+	 *
+	 * @return array  Array of values for the group.
+	 */
+	public function group_field_value() {
 		if ( null !== $this->value ) {
 			return $this->value;
 		}
@@ -97,20 +169,45 @@ class CMB2_Group_Post_Map_Get {
 		return $this->value;
 	}
 
-	public function get_subfield_value( $subfield ) {
-		$value = $this->get_group_field_value();
+	/**
+	 * Gets value for subfield from the value for the whole group.
+	 *
+	 * @since  0.1.0
+	 *
+	 * @param  CMB2_Field $subfield CMB2_Field
+	 *
+	 * @return mixed                Value for subfield.
+	 */
+	public function subfield_value( CMB2_Field $subfield ) {
+		$value = $this->group_field_value();
 
 		// No sub-field?
 		if ( empty( $value[ $this->group_field->index ] ) ) {
 			return null;
 		}
 
-		return isset( $value[ $this->group_field->index ][ $subfield->id( true ) ] )
-			? $value[ $this->group_field->index ][ $subfield->id( true ) ]
+		$field_index = $this->group_field->index;
+		$field_id    = $subfield->id( true );
+
+		return isset( $value[ $field_index ][ $field_id ] )
+			? $value[ $field_index ][ $field_id ]
 			: null;
 	}
 
-	public function set_sub_field_value( $nooverride, $post_id, $args, $subfield ) {
+	/**
+	 * Hooks to 'cmb2_override_meta_value' and returns the value array we've created.
+	 * Also, if field is a taxonomy field, filter 'get_the_terms' to return the cached value.
+	 *
+	 * @since 0.1.0
+	 *
+	 * @param mixed      $nooverride Value w/o override.
+	 * @param int        $post_id    Post ID
+	 * @param array      $args       Array of field arguments.
+	 * @param CMB2_Field $subfield   Sub-field object.
+	 *
+	 * @return array                 Array of values for the group.
+	 */
+	public function set_sub_field_value( $nooverride, $post_id, $args, CMB2_Field $subfield ) {
 		$field_id = $subfield->id( true );
 		$taxonomy = $subfield->args( 'taxonomy' );
 
@@ -133,7 +230,7 @@ class CMB2_Group_Post_Map_Get {
 		$subfield_value = null;
 
 		// If the field id matches a post field
-		if ( in_array( $field_id, CMB2_Group_Post_Map::$post_fields, 1 ) ) {
+		if ( isset( CMB2_Group_Post_Map::$post_fields[ $field_id ] ) ) {
 			$subfield_value = $this->post->{ $field_id };
 		}
 
@@ -165,7 +262,15 @@ class CMB2_Group_Post_Map_Get {
 		return $this->value;
 	}
 
-	public function check_taxonomy_cache( $subfield ) {
+	/**
+	 * Checks if subfield is a taxonomy field, and then filters 'get_the_terms'
+	 * to return the cached value.
+	 *
+	 * @since 0.1.0
+	 *
+	 * @param CMB2_Field  $subfield Sub-field object
+	 */
+	public function check_taxonomy_cache( CMB2_Field $subfield ) {
 		// If we're looking at a taxonomy field type, we have to do extra magic
 		if ( $taxonomy = $subfield->args( 'taxonomy' ) ) {
 			// Get the next post id by removing it from the front of the post ids
@@ -182,6 +287,17 @@ class CMB2_Group_Post_Map_Get {
 		}
 	}
 
+	/**
+	 * Hooked into 'get_the_terms', returns cached term array.
+	 *
+	 * @since  0.1.0
+	 *
+	 * @param  array  $terms    Array of term objects
+	 * @param  int    $post_id  Post ID.
+	 * @param  string $taxonomy Taxonomy slug.
+	 *
+	 * @return array            Array of term objects.
+	 */
 	public function override_term_get( $terms, $post_id, $taxonomy ) {
 		// Final check if we do actually have the cached value
 		if ( $this->term_post_id && isset( $this->terms[ $this->term_post_id ][ $taxonomy ] ) ) {
@@ -190,6 +306,20 @@ class CMB2_Group_Post_Map_Get {
 		}
 
 		return $terms;
+	}
+
+	/**
+	 * trigger_error wrapper which sets error level to E_USER_WARNING and returns empty string.
+	 *
+	 * @since  0.1.0
+	 *
+	 * @param  string $msg Error string
+	 *
+	 * @return string      Empty string for returning.
+	 */
+	protected function trigger_warning( $msg ) {
+		trigger_error( $msg, E_USER_WARNING );
+		return '';
 	}
 
 }

@@ -7,30 +7,30 @@ class CMB2_Group_Post_Map {
 	protected $ids = array();
 
 	public static $post_fields = array(
-		'ID',
-		'post_author',
-		'post_date',
-		'post_date_gmt',
-		'post_content',
-		'post_content_filtered',
-		'post_title',
-		'post_excerpt',
-		'post_status',
-		'post_type',
-		'comment_status',
-		'ping_status',
-		'post_password',
-		'post_name',
-		'to_ping',
-		'pinged',
-		'post_modified',
-		'post_modified_gmt',
-		'post_parent',
-		'menu_order',
-		'post_mime_type',
-		'guid',
-		'tax_input',
-		'meta_input',
+		'ID'                    => '',
+		'post_author'           => '',
+		'post_date'             => '',
+		'post_date_gmt'         => '',
+		'post_content'          => '',
+		'post_content_filtered' => '',
+		'post_title'            => '',
+		'post_excerpt'          => '',
+		'post_status'           => '',
+		'post_type'             => '',
+		'comment_status'        => '',
+		'ping_status'           => '',
+		'post_password'         => '',
+		'post_name'             => '',
+		'to_ping'               => '',
+		'pinged'                => '',
+		'post_modified'         => '',
+		'post_modified_gmt'     => '',
+		'post_parent'           => '',
+		'menu_order'            => '',
+		'post_mime_type'        => '',
+		'guid'                  => '',
+		'tax_input'             => '',
+		'meta_input'            => '',
 	);
 
 	/**
@@ -53,12 +53,6 @@ class CMB2_Group_Post_Map {
 		// override get
 		// override update
 		// override remove
-
-		// cmb2_after_init
-// 		do_action( "cmb2_{$this->object_type()}_process_fields_{$this->cmb_id}", $this, $this->object_id() );
-// $this, $this->object_id()
-		// foreach ( $this->prop( 'fields' ) as $field_args ) {
-
 	}
 
 	public function store_map_box_ids() {
@@ -80,6 +74,7 @@ class CMB2_Group_Post_Map {
 
 					// Hook in our JS registration using after_group group field parameter.
 					$cmb->update_field_property( $field['id'], 'after_group', array( $this, 'add_js' ) );
+					$cmb->update_field_property( $field['id'], 'original_post_types', $cmb->prop( 'object_types' ) );
 
 					// Add a hidden ID field to the group
 					$cmb->add_group_field( $field['id'], array(
@@ -138,7 +133,6 @@ class CMB2_Group_Post_Map {
 
 		$meta_key = $field->id();
 
-		error_log( 'map_to_original_post: '. print_r( compact( 'original_post_id', 'meta_key', 'post_ids' ), true ) );
 		update_post_meta( $original_post_id, $meta_key, $post_ids );
 	}
 
