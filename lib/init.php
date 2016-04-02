@@ -3,7 +3,7 @@
 class CMB2_Group_Map {
 
 	protected static $single_instance = null;
-	protected $allowed_object_types = array( 'user', 'comment', 'term', 'post' );
+	protected $allowed_object_types = array( 'post', 'user', 'comment', 'term' );
 	protected $group_fields = array();
 
 	public static $post_fields = array(
@@ -33,6 +33,54 @@ class CMB2_Group_Map {
 		'meta_input'            => '',
 	);
 
+	public static $user_fields = array(
+		'ID'                   => '',
+		'user_pass'            => '',
+		'user_login'           => '',
+		'user_nicename'        => '',
+		'user_url'             => '',
+		'user_email'           => '',
+		'display_name'         => '',
+		'nickname'             => '',
+		'first_name'           => '',
+		'last_name'            => '',
+		'description'          => '',
+		'rich_editing'         => '',
+		'comment_shortcuts'    => '',
+		'admin_color'          => '',
+		'use_ssl'              => '',
+		'user_registered'      => '',
+		'show_admin_bar_front' => '',
+		'role'                 => '',
+	);
+
+	public static $comment_fields = array(
+		'comment_agent'        => '',
+		'comment_approved'     => '',
+		'comment_author'       => '',
+		'comment_author_email' => '',
+		'comment_author_IP'    => '',
+		'comment_author_url'   => '',
+		'comment_content'      => '',
+		'comment_date'         => '',
+		'comment_date_gmt'     => '',
+		'comment_karma'        => '',
+		'comment_parent'       => '',
+		'comment_post_ID'      => '',
+		'comment_type'         => '',
+		'comment_meta'         => '',
+		'user_id'              => '',
+	);
+
+	public static $term_fields = array(
+		'term'        => '',
+		'taxonomy'    => '',
+		'alias_of'    => '',
+		'description' => '',
+		'parent'      => '',
+		'slug'        => '',
+	);
+
 	/**
 	 * Creates or returns an instance of this class.
 	 * @since  0.1.0
@@ -48,7 +96,7 @@ class CMB2_Group_Map {
 
 	protected function __construct() {
 		add_action( 'cmb2_after_init', array( $this, 'setup_mapped_group_fields' ) );
-		add_action( 'cmb2_group_map_posts_updated', array( $this, 'map_to_original_post' ), 10, 3 );
+		add_action( 'cmb2_group_map_updated', array( $this, 'map_to_original_object' ), 10, 3 );
 	}
 
 	public function setup_mapped_group_fields() {
@@ -91,6 +139,10 @@ class CMB2_Group_Map {
 		// Set object type
 		if ( ! isset( $field['object_type_map'] ) || ! in_array( $field['object_type_map'], $this->allowed_object_types, 1 ) ) {
 			$field['object_type_map'] = 'post';
+		}
+
+		if ( 'term' === $field['object_type_map'] && ( ! isset( $field['taxonomy'] ) || ! taxonomy_exists( $field['taxonomy'] ) ) ) {
+			wp_die( 'Using "term" for the "object_type_map" parameter requires a "taxonomy" parameter to also be set.' );
 		}
 
 		return $field;
@@ -152,17 +204,18 @@ class CMB2_Group_Map {
 		return true; // this shortcuts CMB2 remove
 	}
 
-	public function map_to_original_post( $objects, $original_object_id, $field ) {
+	public function map_to_original_object( $updated, $original_object_id, $field ) {
 		$object_ids = array();
-		foreach ( $objects as $object_id ) {
+		foreach ( $updated as $object_id ) {
 			if ( ! is_wp_error( $object_id ) ) {
 				$object_ids[] = $object_id;
 			}
 		}
 
-		$meta_key = $field->id();
+		$meta_key    = $field->id();
+		$object_type = $field->args( 'original_object_type' );
 
-		update_post_meta( $original_object_id, $meta_key, $object_ids );
+		update_metadata( $object_type, $original_object_id, $meta_key, $object_ids );
 	}
 
 }

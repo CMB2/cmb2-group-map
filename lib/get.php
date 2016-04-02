@@ -1,8 +1,9 @@
 <?php
+require_once CMB2_GROUP_POST_MAP_DIR . 'lib/base.php';
 /**
  * CMB2_Group_Map_Get
  */
-class CMB2_Group_Map_Get {
+class CMB2_Group_Map_Get extends CMB2_Group_Map_Base {
 
 	/**
 	 * A registry array for instances of this class.
@@ -12,14 +13,7 @@ class CMB2_Group_Map_Get {
 	protected static $getters = array();
 
 	/**
-	 * CMB2_Field
-	 *
-	 * @var CMB2_Field
-	 */
-	protected $group_field;
-
-	/**
-	 * Array of mapped post ids for this post.
+	 * Array of mapped object ids for this object.
 	 *
 	 * @var array
 	 */
@@ -33,7 +27,7 @@ class CMB2_Group_Map_Get {
 	protected $term_object_ids = array();
 
 	/**
-	 * The current post id for term-checking.
+	 * The current object id for term-checking.
 	 *
 	 * @var null
 	 */
@@ -54,15 +48,15 @@ class CMB2_Group_Map_Get {
 	protected $terms = null;
 
 	/**
-	 * The current post object during post iteration.
+	 * The current object object during object iteration.
 	 *
 	 * @var null
 	 */
-	protected $post = null;
+	protected $object = null;
 
 	/**
 	 * Get the array of values for a group field or the value for
-	 * a group field's sub-fields. Data is retrieved from the mapped post object.
+	 * a group field's sub-fields. Data is retrieved from the mapped object.
 	 *
 	 * @since  0.1.0
 	 *
@@ -107,18 +101,19 @@ class CMB2_Group_Map_Get {
 	 *
 	 * @param CMB2_Field $group_field Group field to get the values for.
 	 */
-	function __construct( CMB2_Field $group_field ) {
-		$group_field->object_type = $group_field->args( 'object_type_map' );
-		$this->group_field        = $group_field;
+	public function __construct( CMB2_Field $group_field ) {
 
-		$this->object_ids  = get_metadata(
-			$this->group_field->object_type,
+		// Get meta before we change the group field's object type.
+		$this->object_ids = get_metadata(
+			$group_field->object_type,
 			$group_field->object_id,
-			$group_field->id( true )
+			$group_field->id( true ),
 			1
 		);
 
-		// Need a separate post id array for taxonomy term value caching
+		parent::__construct( $group_field );
+
+		// Need a separate object id array for taxonomy term value caching
 		$this->term_object_ids = $this->object_ids;
 	}
 
@@ -143,15 +138,15 @@ class CMB2_Group_Map_Get {
 		$all_fields = $this->group_field->fields();
 		$stored_id = $this->group_field->object_id;
 
-		foreach ( $this->object_ids as $this->group_field->index => $post_id ) {
+		foreach ( $this->object_ids as $this->group_field->index => $object_id ) {
 
-			// Only proceed if there is an actual post by this id
-			if ( $this->post = get_post( $post_id ) ) {
+			// Only proceed if there is an actual object by this id
+			if ( $this->object = $this->get_object( $object_id ) ) {
 
-				// Temp. set the group field's object id to this post id
-				$this->group_field->object_id = $post_id;
+				// Temp. set the group field's object id to this object id
+				$this->group_field->object_id = $object_id;
 
-				// initiate the cached values for this post id
+				// initiate the cached values for this object id
 				$this->value[ $this->group_field->index ] = array();
 
 				// loop the group field's sub-fields
@@ -209,15 +204,14 @@ class CMB2_Group_Map_Get {
 	 * @since 0.1.0
 	 *
 	 * @param mixed      $nooverride Value w/o override.
-	 * @param int        $post_id    Post ID
+	 * @param int        $object_id  Object ID
 	 * @param array      $args       Array of field arguments.
 	 * @param CMB2_Field $subfield   Sub-field object.
 	 *
 	 * @return array                 Array of values for the group.
 	 */
-	public function set_sub_field_value( $nooverride, $post_id, $args, CMB2_Field $subfield ) {
+	public function set_sub_field_value( $nooverride, $object_id, $args, CMB2_Field $subfield ) {
 		$field_id = $subfield->id( true );
-		$taxonomy = $subfield->args( 'taxonomy' );
 
 		if (
 			// If we already have this value
@@ -237,21 +231,26 @@ class CMB2_Group_Map_Get {
 
 		$subfield_value = null;
 
-		// If the field id matches a post field
-		if ( isset( CMB2_Group_Map::$post_fields[ $field_id ] ) ) {
-			$subfield_value = $this->post->{ $field_id };
+		// If the field id matches a object field
+		if ( $this->is_object_field( $field_id ) ) {
+			$subfield_value = $this->object->{ $field_id };
 		}
 
 		// If the field has a taxonomy parameter, then get value from that taxonomy
-		elseif ( $taxonomy ) {
-
+		elseif ( $subfield->args( 'taxonomy' ) ) {
 			$subfield_value = $this->get_value_from_taxonomy( $subfield );
 		}
 
-		// And finally, get the data from the post meta.
+		// And finally, get the data from the object meta.
 		else {
 			$single = $subfield->args( 'repeatable' ) || ! $subfield->args( 'multiple' );
-			$subfield_value = get_post_meta( $this->post->ID, $field_id, $single );
+
+			$subfield_value = get_metadata(
+				$this->object_type(),
+				$this->object_id(),
+				$field_id,
+				$single
+			);
 		}
 
 		$this->value[ $this->group_field->index ][ $field_id ] = $subfield_value;
@@ -269,11 +268,16 @@ class CMB2_Group_Map_Get {
 	 * @return mixed                Array of terms if successful.
 	 */
 	public function get_value_from_taxonomy( CMB2_Field $subfield ) {
-		$taxonomy = $subfield->args( 'taxonomy' );
-		$terms = get_the_terms( $this->post, $taxonomy );
+		// No taxonomies for taxonomies
+		if ( $this->object_type( 'term' ) ) {
+			return null;
+		}
 
-		// Cache this taxonomy's terms against the post ID.
-		$this->terms[ $this->post->ID ][ $taxonomy ] = $terms;
+		$taxonomy = $subfield->args( 'taxonomy' );
+		$terms = get_the_terms( $this->object, $taxonomy );
+
+		// Cache this taxonomy's terms against the object ID.
+		$this->terms[ $this->object_id() ][ $taxonomy ] = $terms;
 
 		if ( is_wp_error( $terms ) || empty( $terms ) ) {
 
@@ -299,12 +303,17 @@ class CMB2_Group_Map_Get {
 	 * @param CMB2_Field  $subfield Sub-field object
 	 */
 	public function check_taxonomy_cache( CMB2_Field $subfield ) {
+		// No taxonomies for taxonomies
+		if ( $this->object_type( 'term' ) ) {
+			return;
+		}
+
 		// If we're looking at a taxonomy field type, we have to do extra magic
 		if ( $taxonomy = $subfield->args( 'taxonomy' ) ) {
-			// Get the next post id by removing it from the front of the post ids
+			// Get the next object id by removing it from the front of the object ids
 			$this->term_object_id = array_shift( $this->term_object_ids );
 
-			// If we have a cached value for this post id, then proceed
+			// If we have a cached value for this object id, then proceed
 			if (
 				isset( $this->terms[ $this->term_object_id ][ $taxonomy ] )
 				&& $this->terms[ $this->term_object_id ][ $taxonomy ]
@@ -320,13 +329,13 @@ class CMB2_Group_Map_Get {
 	 *
 	 * @since  0.1.0
 	 *
-	 * @param  array  $terms    Array of term objects
-	 * @param  int    $post_id  Post ID.
-	 * @param  string $taxonomy Taxonomy slug.
+	 * @param  array  $terms     Array of term objects
+	 * @param  int    $object_id Object ID.
+	 * @param  string $taxonomy  Taxonomy slug.
 	 *
-	 * @return array            Array of term objects.
+	 * @return array             Array of term objects.
 	 */
-	public function override_term_get( $terms, $post_id, $taxonomy ) {
+	public function override_term_get( $terms, $object_id, $taxonomy ) {
 		// Final check if we do actually have the cached value
 		if ( $this->term_object_id && isset( $this->terms[ $this->term_object_id ][ $taxonomy ] ) ) {
 			// Ok we do, so let's return that instead.
@@ -334,20 +343,6 @@ class CMB2_Group_Map_Get {
 		}
 
 		return $terms;
-	}
-
-	/**
-	 * trigger_error wrapper which sets error level to E_USER_WARNING and returns empty string.
-	 *
-	 * @since  0.1.0
-	 *
-	 * @param  string $msg Error string
-	 *
-	 * @return string      Empty string for returning.
-	 */
-	protected function trigger_warning( $msg ) {
-		trigger_error( $msg, E_USER_WARNING );
-		return '';
 	}
 
 }
