@@ -1,8 +1,8 @@
 <?php
 /**
- * CMB2_Group_Post_Map_Set
+ * CMB2_Group_Map_Set
  */
-class CMB2_Group_Post_Map_Set {
+class CMB2_Group_Map_Set {
 
 	/**
 	 * CMB2_Field
@@ -27,13 +27,15 @@ class CMB2_Group_Post_Map_Set {
 	 * @param mixed      $value       Value to save.
 	 */
 	function __construct( CMB2_Field $group_field, $value ) {
-		$this->group_field = $group_field;
+		$group_field->object_type = $group_field->args( 'object_type_map' );
+		$this->group_field        = $group_field;
+
 		$this->value = $value;
 	}
 
 	/**
 	 * Handles saving the group field value out to individual CPT posts.
-	 * Calls 'cmb2_group_post_map_posts_updated' hook.
+	 * Calls 'cmb2_group_map_posts_updated' hook.
 	 *
 	 * @since  0.1.0
 	 */
@@ -69,7 +71,7 @@ class CMB2_Group_Post_Map_Set {
 		}
 
 		// Trigger an action after posts were updated/created
-		do_action( 'cmb2_group_post_map_posts_updated', $posts, $parent_post_id, $group_field );
+		do_action( 'cmb2_group_map_posts_updated', $posts, $parent_post_id, $group_field );
 	}
 
 	/**
@@ -147,7 +149,7 @@ class CMB2_Group_Post_Map_Set {
 		}
 
 		// If the field id matches a post field
-		if ( isset( CMB2_Group_Post_Map::$post_fields[ $field_id ] ) ) {
+		if ( isset( CMB2_Group_Map::$post_fields[ $field_id ] ) ) {
 
 			// Then apply it directly.
 			$post_data[ $field_id ] = $clean_val;

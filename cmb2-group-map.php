@@ -1,11 +1,11 @@
 <?php
 /**
- * CMB2_Group_Post_Map loader
+ * CMB2_Group_Map loader
  *
  * Handles checking for and smartly loading the newest version of this library.
  *
  * @category  WordPressLibrary
- * @package   CMB2_Group_Post_Map
+ * @package   CMB2_Group_Map
  * @author    Justin Sternberg <justin@dsgnwrks.pro>
  * @copyright 2016 Justin Sternberg <justin@dsgnwrks.pro>
  * @license   GPL-2.0+
@@ -36,7 +36,7 @@
  * Loader versioning: http://jtsternberg.github.io/wp-lib-loader/
  */
 
-if ( ! class_exists( 'CMB2_Group_Post_Map_010', false ) ) {
+if ( ! class_exists( 'CMB2_Group_Map_010', false ) ) {
 
 	/**
 	 * Versioned loader class-name
@@ -44,17 +44,17 @@ if ( ! class_exists( 'CMB2_Group_Post_Map_010', false ) ) {
 	 * This ensures each version is loaded/checked.
 	 *
 	 * @category WordPressLibrary
-	 * @package  CMB2_Group_Post_Map
+	 * @package  CMB2_Group_Map
 	 * @author   Justin Sternberg <justin@dsgnwrks.pro>
 	 * @license  GPL-2.0+
 	 * @version  0.1.0
 	 * @link     http://dsgnwrks.pro
 	 * @since    0.1.0
 	 */
-	class CMB2_Group_Post_Map_010 {
+	class CMB2_Group_Map_010 {
 
 		/**
-		 * CMB2_Group_Post_Map version number
+		 * CMB2_Group_Map version number
 		 * @var   string
 		 * @since 0.1.0
 		 */
@@ -74,7 +74,7 @@ if ( ! class_exists( 'CMB2_Group_Post_Map_010', false ) ) {
 		 * Creates CMB2_GROUP_POST_MAP_LOADED definition for early detection by
 		 * other scripts.
 		 *
-		 * Hooks CMB2_Group_Post_Map inclusion to the cmb2_group_post_map_load hook
+		 * Hooks CMB2_Group_Map inclusion to the cmb2_group_map_load hook
 		 * on a high priority which decrements (increasing the priority) with
 		 * each version release.
 		 *
@@ -83,8 +83,8 @@ if ( ! class_exists( 'CMB2_Group_Post_Map_010', false ) ) {
 		public function __construct() {
 			if ( ! defined( 'CMB2_GROUP_POST_MAP_LOADED' ) ) {
 				/**
-				 * A constant you can use to check if CMB2_Group_Post_Map is loaded
-				 * for your plugins/themes with CMB2_Group_Post_Map dependency.
+				 * A constant you can use to check if CMB2_Group_Map is loaded
+				 * for your plugins/themes with CMB2_Group_Map dependency.
 				 *
 				 * Can also be used to determine the priority of the hook
 				 * in use for the currently loaded version.
@@ -93,11 +93,11 @@ if ( ! class_exists( 'CMB2_Group_Post_Map_010', false ) ) {
 			}
 
 			// Use the hook system to ensure only the newest version is loaded.
-			add_action( 'cmb2_group_post_map_load', array( $this, 'include_lib' ), self::PRIORITY );
+			add_action( 'cmb2_group_map_load', array( $this, 'include_lib' ), self::PRIORITY );
 
 			/*
 			 * Hook in to the first hook we have available and
-			 * fire our `cmb2_group_post_map_load' hook.
+			 * fire our `cmb2_group_map_load' hook.
 			 */
 			add_action( 'muplugins_loaded', array( __CLASS__, 'fire_hook' ), 9 );
 			add_action( 'plugins_loaded', array( __CLASS__, 'fire_hook' ), 9 );
@@ -105,20 +105,20 @@ if ( ! class_exists( 'CMB2_Group_Post_Map_010', false ) ) {
 		}
 
 		/**
-		 * Fires the cmb2_group_post_map_load action hook.
+		 * Fires the cmb2_group_map_load action hook.
 		 *
 		 * @since 0.1.0
 		 */
 		public static function fire_hook() {
-			if ( ! did_action( 'cmb2_group_post_map_load' ) ) {
+			if ( ! did_action( 'cmb2_group_map_load' ) ) {
 				// Then fire our hook.
-				do_action( 'cmb2_group_post_map_load' );
+				do_action( 'cmb2_group_map_load' );
 			}
 		}
 
 		/**
-		 * A final check if CMB2_Group_Post_Map exists before kicking off
-		 * our CMB2_Group_Post_Map loading.
+		 * A final check if CMB2_Group_Map exists before kicking off
+		 * our CMB2_Group_Map loading.
 		 *
 		 * CMB2_GROUP_POST_MAP_VERSION and CMB2_GROUP_POST_MAP_DIR constants are
 		 * set at this point.
@@ -126,30 +126,30 @@ if ( ! class_exists( 'CMB2_Group_Post_Map_010', false ) ) {
 		 * @since  0.1.0
 		 */
 		public function include_lib() {
-			if ( class_exists( 'CMB2_Group_Post_Map', false ) ) {
+			if ( class_exists( 'CMB2_Group_Map', false ) ) {
 				return;
 			}
 
 			if ( ! defined( 'CMB2_GROUP_POST_MAP_VERSION' ) ) {
 				/**
-				 * Defines the currently loaded version of CMB2_Group_Post_Map.
+				 * Defines the currently loaded version of CMB2_Group_Map.
 				 */
 				define( 'CMB2_GROUP_POST_MAP_VERSION', self::VERSION );
 			}
 
 			if ( ! defined( 'CMB2_GROUP_POST_MAP_DIR' ) ) {
 				/**
-				 * Defines the directory of the currently loaded version of CMB2_Group_Post_Map.
+				 * Defines the directory of the currently loaded version of CMB2_Group_Map.
 				 */
 				define( 'CMB2_GROUP_POST_MAP_DIR', dirname( __FILE__ ) . '/' );
 			}
 
-			// Include and initiate CMB2_Group_Post_Map.
+			// Include and initiate CMB2_Group_Map.
 			require_once CMB2_GROUP_POST_MAP_DIR . 'lib/init.php';
 		}
 
 	}
 
 	// Kick it off.
-	new CMB2_Group_Post_Map_010;
+	new CMB2_Group_Map_010;
 }

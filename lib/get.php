@@ -1,8 +1,8 @@
 <?php
 /**
- * CMB2_Group_Post_Map_Get
+ * CMB2_Group_Map_Get
  */
-class CMB2_Group_Post_Map_Get {
+class CMB2_Group_Map_Get {
 
 	/**
 	 * A registry array for instances of this class.
@@ -23,21 +23,21 @@ class CMB2_Group_Post_Map_Get {
 	 *
 	 * @var array
 	 */
-	protected $post_ids = array();
+	protected $object_ids = array();
 
 	/**
-	 * Copy of $post_ids, manipulated for term-checking.
+	 * Copy of $object_ids, manipulated for term-checking.
 	 *
 	 * @var array
 	 */
-	protected $term_post_ids = array();
+	protected $term_object_ids = array();
 
 	/**
 	 * The current post id for term-checking.
 	 *
 	 * @var null
 	 */
-	protected $term_post_id = null;
+	protected $term_object_id = null;
 
 	/**
 	 * Retrieved value array.
@@ -86,7 +86,7 @@ class CMB2_Group_Post_Map_Get {
 			$value  = $getter->subfield_value( $field );
 
 			// Return filtered value.
-			return apply_filters( 'cmb2_group_post_map_get_subfield_value', $value, $getter, $field );
+			return apply_filters( 'cmb2_group_map_get_subfield_value', $value, $getter, $field );
 		}
 
 		if ( ! isset( self::$getters[ $field_id ] ) ) {
@@ -97,7 +97,7 @@ class CMB2_Group_Post_Map_Get {
 		$value  = $getter->group_field_value();
 
 		// Return filtered value.
-		return apply_filters( 'cmb2_group_post_map_get_group_field_value', $value, $getter );
+		return apply_filters( 'cmb2_group_map_get_group_field_value', $value, $getter );
 	}
 
 	/**
@@ -108,10 +108,18 @@ class CMB2_Group_Post_Map_Get {
 	 * @param CMB2_Field $group_field Group field to get the values for.
 	 */
 	function __construct( CMB2_Field $group_field ) {
-		$this->group_field = $group_field;
-		$this->post_ids    = get_post_meta( $group_field->object_id, $this->group_field->id( true ), 1 );
+		$group_field->object_type = $group_field->args( 'object_type_map' );
+		$this->group_field        = $group_field;
+
+		$this->object_ids  = get_metadata(
+			$this->group_field->object_type,
+			$group_field->object_id,
+			$group_field->id( true )
+			1
+		);
+
 		// Need a separate post id array for taxonomy term value caching
-		$this->term_post_ids = $this->post_ids;
+		$this->term_object_ids = $this->object_ids;
 	}
 
 	/**
@@ -128,14 +136,14 @@ class CMB2_Group_Post_Map_Get {
 
 		$this->value = array();
 
-		if ( empty( $this->post_ids ) ) {
+		if ( empty( $this->object_ids ) ) {
 			return $this->value;
 		}
 
 		$all_fields = $this->group_field->fields();
 		$stored_id = $this->group_field->object_id;
 
-		foreach ( $this->post_ids as $this->group_field->index => $post_id ) {
+		foreach ( $this->object_ids as $this->group_field->index => $post_id ) {
 
 			// Only proceed if there is an actual post by this id
 			if ( $this->post = get_post( $post_id ) ) {
@@ -230,7 +238,7 @@ class CMB2_Group_Post_Map_Get {
 		$subfield_value = null;
 
 		// If the field id matches a post field
-		if ( isset( CMB2_Group_Post_Map::$post_fields[ $field_id ] ) ) {
+		if ( isset( CMB2_Group_Map::$post_fields[ $field_id ] ) ) {
 			$subfield_value = $this->post->{ $field_id };
 		}
 
@@ -274,12 +282,12 @@ class CMB2_Group_Post_Map_Get {
 		// If we're looking at a taxonomy field type, we have to do extra magic
 		if ( $taxonomy = $subfield->args( 'taxonomy' ) ) {
 			// Get the next post id by removing it from the front of the post ids
-			$this->term_post_id = array_shift( $this->term_post_ids );
+			$this->term_object_id = array_shift( $this->term_object_ids );
 
 			// If we have a cached value for this post id, then proceed
 			if (
-				isset( $this->terms[ $this->term_post_id ][ $taxonomy ] )
-				&& $this->terms[ $this->term_post_id ][ $taxonomy ]
+				isset( $this->terms[ $this->term_object_id ][ $taxonomy ] )
+				&& $this->terms[ $this->term_object_id ][ $taxonomy ]
 			) {
 				// We have a cached value, so we'll filter get_the_terms to return the cached value.
 				add_filter( 'get_the_terms', array( $this, 'override_term_get' ), 10, 3 );
@@ -300,9 +308,9 @@ class CMB2_Group_Post_Map_Get {
 	 */
 	public function override_term_get( $terms, $post_id, $taxonomy ) {
 		// Final check if we do actually have the cached value
-		if ( $this->term_post_id && isset( $this->terms[ $this->term_post_id ][ $taxonomy ] ) ) {
+		if ( $this->term_object_id && isset( $this->terms[ $this->term_object_id ][ $taxonomy ] ) ) {
 			// Ok we do, so let's return that instead.
-			$terms = $this->terms[ $this->term_post_id ][ $taxonomy ];
+			$terms = $this->terms[ $this->term_object_id ][ $taxonomy ];
 		}
 
 		return $terms;
