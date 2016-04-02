@@ -83,6 +83,17 @@ abstract class CMB2_Group_Map_Base {
 	}
 
 	/**
+	 * CMB2_Group_Map::object_id_key which gets the unique ID field key for the object type.
+	 *
+	 * @since  0.1.0
+	 *
+	 * @return string ID field key
+	 */
+	public function object_id_key() {
+		return CMB2_Group_Map::object_id_key( $this->object_type() );
+	}
+
+	/**
 	 * Chec if field id is one of the object type's default fields
 	 *
 	 * @since  0.1.0

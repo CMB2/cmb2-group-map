@@ -6,6 +6,7 @@
  * @todo Document this file/methods, etc
  * @todo Add README.md
  * @todo Add JS which adds button for removing the mapped object from DB
+ * @todo Add JS button for selecting/searching existing content
  * @todo Hook up removal
  */
 class CMB2_Group_Map {
@@ -133,7 +134,7 @@ class CMB2_Group_Map {
 
 		// Add a hidden ID field to the group to store the referenced object id.
 		$cmb->add_group_field( $field['id'], array(
-			'id'   => 'ID',
+			'id'   => self::object_id_key( $field['object_type_map'] ),
 			'type' => 'hidden',
 		) );
 
@@ -186,6 +187,20 @@ class CMB2_Group_Map {
 		return $dependencies;
 	}
 
+	public static function object_id_key( $object_type ) {
+		switch ( $object_type ) {
+			case 'comment':
+				return 'comment_ID';
+
+			case 'term':
+				return 'term_id';
+
+			case 'user':
+			default:
+				return 'ID';
+		}
+	}
+
 	protected function hook_cmb2_overrides( $field_id ) {
 		add_filter( "cmb2_override_{$field_id}_meta_save", array( $this, 'do_save' ), 10, 4 );
 		add_filter( "cmb2_override_{$field_id}_meta_value", array( $this, 'do_get' ), 10, 4 );
@@ -227,7 +242,11 @@ class CMB2_Group_Map {
 		$meta_key    = $field->id();
 		$object_type = $field->args( 'original_object_type' );
 
-		update_metadata( $object_type, $original_object_id, $meta_key, $object_ids );
+		if ( empty( $object_ids ) ) {
+			delete_metadata( $object_type, $original_object_id, $meta_key );
+		} else {
+			update_metadata( $object_type, $original_object_id, $meta_key, $object_ids );
+		}
 	}
 
 }

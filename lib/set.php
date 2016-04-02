@@ -159,6 +159,16 @@ class CMB2_Group_Map_Set extends CMB2_Group_Map_Base {
 	 * @param array  $data Array of modified object data.
 	 */
 	public function set_default_data( $data ) {
+		$key = $this->object_id_key();
+
+		// If we only have an id, unset that and return (to unattach a post)
+		if ( 1 === count( $data ) && ! empty( $data[ $key ] ) ) {
+			unset( $data[ $key ] );
+
+			return $data;
+		}
+
+
 		switch ( $this->object_type() ) {
 			case 'user':
 				$data['ID']   = isset( $data['ID'] ) ? $data['ID'] : 0;

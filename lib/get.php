@@ -136,7 +136,7 @@ class CMB2_Group_Map_Get extends CMB2_Group_Map_Base {
 		}
 
 		$all_fields = $this->group_field->fields();
-		$stored_id = $this->group_field->object_id;
+		$stored_id  = $this->group_field->object_id;
 
 		foreach ( $this->object_ids as $this->group_field->index => $object_id ) {
 
