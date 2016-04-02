@@ -6,7 +6,7 @@
  * @todo Document this file/methods, etc
  * @todo Add README.md
  * @todo Add JS which adds button for removing the mapped object from DB
- * @todo Add JS button for selecting/searching existing content
+ * @todo Add JS button for selecting/searching existing content (but only w/o post_parent)
  * @todo Hook up removal
  */
 class CMB2_Group_Map {
@@ -182,7 +182,7 @@ class CMB2_Group_Map {
 	}
 
 	public function register_js( $dependencies ) {
-		$dependencies['cmb2_group_map'] = 'cmb2_group_map';
+		// $dependencies['cmb2_group_map'] = 'cmb2_group_map';
 		// wp_register_script( 'cmb2_group_map', $src, array( 'jquery' ), self::VERSION, 1 );
 		return $dependencies;
 	}
