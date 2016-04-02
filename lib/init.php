@@ -117,7 +117,7 @@ class CMB2_Group_Map {
 	}
 
 	protected function setup_mapped_group_field( CMB2 $cmb, array $field ) {
-		$field = $this->set_object_type( $field );
+		$field = $this->set_object_type( $cmb, $field );
 
 		$this->set_after_group_js_hook( $cmb, $field );
 
@@ -135,11 +135,13 @@ class CMB2_Group_Map {
 		$this->group_fields[ $cmb->cmb_id ][ $field['id'] ] = $field;
 	}
 
-	protected function set_object_type( array $field ) {
+	protected function set_object_type( CMB2 $cmb, array $field ) {
 		// Set object type
 		if ( ! isset( $field['object_type_map'] ) || ! in_array( $field['object_type_map'], $this->allowed_object_types, 1 ) ) {
 			$field['object_type_map'] = 'post';
 		}
+
+		$cmb->update_field_property( $field['id'], 'object_type_map', $field['object_type_map'] );
 
 		if ( 'term' === $field['object_type_map'] && ( ! isset( $field['taxonomy'] ) || ! taxonomy_exists( $field['taxonomy'] ) ) ) {
 			wp_die( 'Using "term" for the "object_type_map" parameter requires a "taxonomy" parameter to also be set.' );

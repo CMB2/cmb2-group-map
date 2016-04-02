@@ -89,7 +89,7 @@ class CMB2_Group_Map_Set extends CMB2_Group_Map_Base {
 
 		// Set some default object data params
 		if ( ! empty( $data ) ) {
-			$data = $this->set_default_data();
+			$data = $this->set_default_data( $data );
 		}
 
 		return $data;
@@ -139,6 +139,7 @@ class CMB2_Group_Map_Set extends CMB2_Group_Map_Base {
 		} elseif ( $taxonomy ) {
 
 			// If the field has a taxonomy parameter, then set value to that taxonomy
+			// @todo figure out why unchecking all terms does not remove them.
 			$object_data['tax_input'][ $taxonomy ] = $clean_val;
 
 		} else {
@@ -283,7 +284,7 @@ class CMB2_Group_Map_Set extends CMB2_Group_Map_Base {
 					unset( $data['term_id'] );
 				}
 
-				return wp_insert_term( $data['term'], $data['taxonomy'], $data ));
+				return wp_insert_term( $data['term'], $data['taxonomy'], $data );
 
 			default:
 				if ( isset( $data['ID'] ) ) {
