@@ -244,19 +244,8 @@ class CMB2_Group_Map_Get {
 
 		// If the field has a taxonomy parameter, then get value from that taxonomy
 		elseif ( $taxonomy ) {
-			$subfield_value = get_the_terms( $this->post, $taxonomy );
 
-			$this->terms[ $this->post->ID ][ $taxonomy ] = $subfield_value;
-
-			if ( is_wp_error( $subfield_value ) || empty( $subfield_value ) ) {
-				$subfield_value = $subfield->args( 'default' );
-
-			} else {
-
-				$subfield_value = 'taxonomy_multicheck' === $subfield->type()
-					? wp_list_pluck( $subfield_value, 'slug' )
-					: $subfield_value[ key( $subfield_value ) ]->slug;
-			}
+			$subfield_value = $this->get_value_from_taxonomy( $subfield );
 		}
 
 		// And finally, get the data from the post meta.
@@ -268,6 +257,37 @@ class CMB2_Group_Map_Get {
 		$this->value[ $this->group_field->index ][ $field_id ] = $subfield_value;
 
 		return $this->value;
+	}
+
+	/**
+	 * Get the value from a taxonomy subfield
+	 *
+	 * @since  0.1.0
+	 *
+	 * @param  CMB2_Field $subfield Subfield object.
+	 *
+	 * @return mixed                Array of terms if successful.
+	 */
+	public function get_value_from_taxonomy( CMB2_Field $subfield ) {
+		$taxonomy = $subfield->args( 'taxonomy' );
+		$terms = get_the_terms( $this->post, $taxonomy );
+
+		// Cache this taxonomy's terms against the post ID.
+		$this->terms[ $this->post->ID ][ $taxonomy ] = $terms;
+
+		if ( is_wp_error( $terms ) || empty( $terms ) ) {
+
+			// Fallback to default (if it's set)
+			$terms = $subfield->args( 'default' );
+
+		} else {
+
+			$terms = 'taxonomy_multicheck' === $subfield->type()
+				? wp_list_pluck( $terms, 'slug' )
+				: $terms[ key( $terms ) ]->slug;
+		}
+
+		return $terms;
 	}
 
 	/**
