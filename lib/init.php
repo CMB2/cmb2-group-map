@@ -215,7 +215,9 @@ class CMB2_Group_Map {
 	}
 
 	public function map_to_original_object( $updated, $original_object_id, $field ) {
+		$updated    = is_array( $updated ) ? $updated : array();
 		$object_ids = array();
+
 		foreach ( $updated as $object_id ) {
 			if ( ! is_wp_error( $object_id ) ) {
 				$object_ids[] = $object_id;

@@ -26,12 +26,12 @@ class CMB2_Group_Map_Set extends CMB2_Group_Map_Base {
 	 * @since  0.1.0
 	 */
 	public function save() {
-		$updated = array();
+		$updated          = array();
+		$group_field      = $this->group_field;
+		$parent_object_id = $group_field->object_id;
 
 		if ( ! empty( $this->value ) ) {
 
-			$group_field    = $this->group_field;
-			$parent_object_id = $group_field->object_id;
 			$field_id       = $group_field->id( true );
 			$fields         = array();
 			$form_data      = isset( $_POST[ $field_id ] ) ? $_POST[ $field_id ] : array();
