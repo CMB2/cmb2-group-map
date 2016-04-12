@@ -11,6 +11,7 @@
  */
 class CMB2_Group_Map {
 
+	const VERSION = CMB2_GROUP_POST_MAP_VERSION;
 	protected static $single_instance = null;
 	protected $allowed_object_types = array( 'post', 'user', 'comment', 'term' );
 	protected $group_fields = array();
@@ -182,9 +183,49 @@ class CMB2_Group_Map {
 	}
 
 	public function register_js( $dependencies ) {
-		// $dependencies['cmb2_group_map'] = 'cmb2_group_map';
-		// wp_register_script( 'cmb2_group_map', $src, array( 'jquery' ), self::VERSION, 1 );
+		$dependencies['cmb2_group_map'] = 'cmb2_group_map';
+		$assets_url = $this->get_url_from_dir( CMB2_GROUP_POST_MAP_DIR ) . 'lib/assets/';
+
+		error_log( '$src: '. print_r( $assets_url, true ) );
+
+		wp_register_script(
+			'cmb2_group_map',
+			$assets_url . 'js/cmb2-group-map.js',
+			array( 'jquery', 'wp-backbone' ),
+			self::VERSION,
+			1
+		);
+
+		wp_localize_script( 'cmb2_group_map', 'CMB2Mapl10n', array(
+			'txtreplace' => __( 'Replace Item', 'cmb2_group_map' ),
+		) );
+
+		wp_enqueue_style(
+			'cmb2_group_map',
+			$assets_url . 'css/cmb2-group-map.css',
+			array(),
+			self::VERSION
+		);
+
 		return $dependencies;
+	}
+
+	public function get_url_from_dir( $dir ) {
+		if ( 'WIN' === strtoupper( substr( PHP_OS, 0, 3 ) ) ) {
+			// Windows
+			$content_dir = str_replace( '/', DIRECTORY_SEPARATOR, WP_CONTENT_DIR );
+			$content_url = str_replace( $content_dir, WP_CONTENT_URL, $dir );
+			$url = str_replace( DIRECTORY_SEPARATOR, '/', $content_url );
+
+		} else {
+			$url = str_replace(
+				array( WP_CONTENT_DIR, WP_PLUGIN_DIR ),
+				array( WP_CONTENT_URL, WP_PLUGIN_URL ),
+				$dir
+			);
+		}
+
+		return set_url_scheme( $url );
 	}
 
 	public static function object_id_key( $object_type ) {
