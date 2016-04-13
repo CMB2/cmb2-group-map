@@ -3,11 +3,8 @@
  * CMB2_Group_Map
  *
  * @todo Make this work for other destination object types
- * @todo Document this file/methods, etc
+ * @todo Document file/methods, etc
  * @todo Add README.md
- * @todo Add JS which adds button for removing the mapped object from DB
- * @todo Add JS button for selecting/searching existing content (but only w/o post_parent)
- * @todo Hook up removal
  */
 class CMB2_Group_Map {
 
