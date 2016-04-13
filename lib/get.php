@@ -306,6 +306,10 @@ class CMB2_Group_Map_Get extends CMB2_Group_Map_Base {
 		// If we're looking at a taxonomy field type, we have to do extra magic
 		if ( $taxonomy = $subfield->args( 'taxonomy' ) ) {
 
+			if ( ! isset( $this->object_ids[ $this->group_field->index ] ) ) {
+				return;
+			}
+
 			// Get the next object id by removing it from the front of the object ids
 			$this->term_object_id = $this->object_ids[ $this->group_field->index ];
 
