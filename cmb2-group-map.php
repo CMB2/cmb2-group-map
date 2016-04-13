@@ -146,6 +146,13 @@ if ( ! class_exists( 'CMB2_Group_Map_010', false ) ) {
 
 			// Include and initiate CMB2_Group_Map.
 			require_once CMB2_GROUP_POST_MAP_DIR . 'lib/init.php';
+
+			$file = CMB2_GROUP_POST_MAP_DIR . 'vendor/webdevstudios/cmb2-post-search-field/cmb2_post_search_field.php';
+
+			// If using composer, the post_search_field lib may be included elsewhere.
+			if ( file_exists( $file ) ) {
+				require_once $file;
+			}
 		}
 
 	}

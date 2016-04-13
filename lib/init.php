@@ -91,6 +91,13 @@ class CMB2_Group_Map {
 		'slug'        => '',
 	);
 
+	public static $strings = array(
+		'missing_required' => 'Missing required data.',
+		'missing_nonce'    => 'Missing required validation nonce or failed nonce validation.',
+		'delete_permanent' => 'This item will be detached from this post. Do you want to also delete it permanently?',
+		'could_not_delete' => 'The item could not be deleted.',
+	);
+
 	/**
 	 * Creates or returns an instance of this class.
 	 * @since  0.1.0
@@ -107,9 +114,26 @@ class CMB2_Group_Map {
 	protected function __construct() {
 		add_action( 'cmb2_after_init', array( $this, 'setup_mapped_group_fields' ) );
 		add_action( 'cmb2_group_map_updated', array( $this, 'map_to_original_object' ), 10, 3 );
+		add_action( 'wp_ajax_cmb2_group_map_get_post_data', array( $this, 'get_ajax_input_data' ) );
+		add_action( 'wp_ajax_cmb2_group_map_delete_item', array( $this, 'ajax_delete_item' ) );
 	}
 
 	public function setup_mapped_group_fields() {
+
+		/**
+		 * Library's strings made available for translation.
+		 *
+		 * function cmb2_group_map_strings_i18n( $strings ) {
+		 * 	$strings['findtxt'] = __( 'Find %s', 'your-textdomain' );
+		 *  	return $strings;
+		 * }
+		 * add_filter( 'cmb2_group_map_strings', 'cmb2_group_map_strings_i18n' );
+		 *
+		 * @param  array $strings Array of unmodified strings.
+		 * @return array Array of modified strings
+		 */
+		self::$strings = apply_filters( 'cmb2_group_map_strings', self::$strings );
+
 		foreach ( CMB2_Boxes::get_all() as $cmb ) {
 			foreach ( (array) $cmb->prop( 'fields' ) as $field ) {
 				if (
@@ -135,8 +159,18 @@ class CMB2_Group_Map {
 
 		// Add a hidden ID field to the group to store the referenced object id.
 		$cmb->add_group_field( $field['id'], array(
-			'id'   => self::object_id_key( $field['object_type_map'] ),
-			'type' => 'hidden',
+			'id'              => self::object_id_key( $field['object_type_map'] ),
+			'type'            => 'post_search_text',
+			'post_type'       => $field['post_type_map'],
+			'select_type'     => 'radio',
+			'select_behavior' => 'replace',
+			'row_classes'     => 'hidden cmb2-group-map-id',
+			'options'         => array(
+				'find_text' => get_post_type_object( $field['post_type_map'] )->labels->search_items,
+			),
+			'attributes' => array(
+				'class'=> 'regular-text cmb2-group-map-data',
+			),
 		) );
 
 		$this->hook_cmb2_overrides( $field['id'] );
@@ -161,22 +195,37 @@ class CMB2_Group_Map {
 	}
 
 	protected function set_after_group_js_hook( CMB2 $cmb, array $field ) {
-		// Let's be sure not to stomp out any existing after_group parameter.
+		// Let's be sure not to stomp out any existing before_group/after_group parameters.
+		if ( isset( $field['before_group'] ) ) {
+			// Store them to another field property
+			$cmb->update_field_property( $field['id'], 'cmb2_group_map_before_group', $field['before_group'] );
+		}
 		if ( isset( $field['after_group'] ) ) {
-			// Store it to another field property
 			$cmb->update_field_property( $field['id'], 'cmb2_group_map_after_group', $field['after_group'] );
 		}
 
 		// Hook in our JS registration using after_group group field parameter.
 		// This ensures the enqueueing/registering only occurs if the field is displayed.
-		$cmb->update_field_property( $field['id'], 'after_group', array( $this, 'filter_cmb2_js_dependencies' ) );
+		$cmb->update_field_property( $field['id'], 'after_group', array( $this, 'after_group' ) );
+		$cmb->update_field_property( $field['id'], 'before_group', array( $this, 'before_group' ) );
 	}
 
-	public function filter_cmb2_js_dependencies( $args, $field ) {
+	public function before_group( $args, $field ) {
+		// Check for stored 'before_group' parameter, and run that now.
+		if ( $field->args( 'cmb2_group_map_before_group' ) ) {
+			$field->peform_param_callback( 'cmb2_group_map_before_group' );
+		}
+
+		echo '<div class="cmb2-group-map-group" data-nonce="'. wp_create_nonce( $field->id(), $field->id() ) .'" data-groupID="'. $field->id() .'">';
+	}
+
+	public function after_group( $args, $field ) {
 		// Check for stored 'after_group' parameter, and run that now.
 		if ( $field->args( 'cmb2_group_map_after_group' ) ) {
 			$field->peform_param_callback( 'cmb2_group_map_after_group' );
 		}
+
+		echo '</div>';
 
 		// Register our JS with the 'cmb2_script_dependencies' filter.
 		add_filter( 'cmb2_script_dependencies', array( $this, 'register_js' ) );
@@ -197,7 +246,8 @@ class CMB2_Group_Map {
 		);
 
 		wp_localize_script( 'cmb2_group_map', 'CMB2Mapl10n', array(
-			'txtreplace' => __( 'Replace Item', 'cmb2_group_map' ),
+			'ajaxurl' => admin_url( 'admin-ajax.php', 'relative' ),
+			'strings' => self::$strings,
 		) );
 
 		wp_enqueue_style(
@@ -226,6 +276,15 @@ class CMB2_Group_Map {
 		}
 
 		return set_url_scheme( $url );
+	}
+
+	public function post_types( $field ) {
+		if ( ! isset( $field['post_type'] ) ) {
+			$field['post_type'] = get_post_types( array( 'public' => true ) );
+			unset( $field['post_type']['attachment'] );
+		}
+
+		return $field['post_type'];
 	}
 
 	public static function object_id_key( $object_type ) {
@@ -287,6 +346,28 @@ class CMB2_Group_Map {
 			delete_metadata( $object_type, $original_object_id, $meta_key );
 		} else {
 			update_metadata( $object_type, $original_object_id, $meta_key, $object_ids );
+		}
+	}
+
+	public function get_ajax_input_data() {
+		require_once CMB2_GROUP_POST_MAP_DIR . 'lib/ajax.php';
+
+		try {
+			$ajax_handler = new CMB2_Group_Map_Ajax( $_POST, $this->group_fields );
+			$ajax_handler->send_input_data();
+		} catch ( Exception $e ) {
+			wp_send_json_error( $e->getMessage() );
+		}
+	}
+
+	public function ajax_delete_item() {
+		require_once CMB2_GROUP_POST_MAP_DIR . 'lib/ajax.php';
+
+		try {
+			$ajax_handler = new CMB2_Group_Map_Ajax( $_POST, $this->group_fields );
+			$ajax_handler->delete();
+		} catch ( Exception $e ) {
+			wp_send_json_error( $e->getMessage() );
 		}
 	}
 

@@ -1,0 +1,23 @@
+{
+    "name": "jtsternberg/cmb2-group-map",
+    "description": "Allows using a custom post type for a CMB2 Group data store.",
+    "license": "GPL-2.0+",
+    "authors": [
+        {
+            "name": "jtsternberg",
+            "email": "justin@dsgnwrks.pro",
+            "homepage": "http://dsgnwrks.pro/",
+            "role": "Developer"
+        }
+    ],
+    "keywords": ["wordpress", "plugin", "metabox","search","field","CMB2"],
+    "homepage": "http://dsgnwrks.pro",
+    "type": "wordpress-plugin",
+    "require": {
+        "php": ">5.2.4",
+        "webdevstudios/cmb2-post-search-field": "dev-master"
+    },
+    "suggest": {
+        "composer/installers": "~1.0"
+    }
+}
