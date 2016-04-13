@@ -83,6 +83,28 @@ abstract class CMB2_Group_Map_Base {
 	}
 
 	/**
+	 * Delete the object for our object type
+	 *
+	 * @since  0.1.0
+	 *
+	 * @param  int   $object_id Object ID
+	 *
+	 * @return mixed            Object instance if successful
+	 */
+	public function delete_object( $object_id, $force_delete = true ) {
+		switch ( $this->object_type() ) {
+			case 'term':
+				return wp_delete_term( $object_id, $this->group_field->args( 'taxonomy' ) );
+			case 'comment':
+				return wp_delete_comment( $object_id, $force_delete );
+			case 'user':
+				return wp_delete_user( $object_id );
+			default:
+				return wp_delete_post( $object_id, $force_delete );
+		}
+	}
+
+	/**
 	 * CMB2_Group_Map::object_id_key which gets the unique ID field key for the object type.
 	 *
 	 * @since  0.1.0
