@@ -20,13 +20,6 @@ class CMB2_Group_Map_Get extends CMB2_Group_Map_Base {
 	protected $object_ids = array();
 
 	/**
-	 * Copy of $object_ids, manipulated for term-checking.
-	 *
-	 * @var array
-	 */
-	protected $term_object_ids = array();
-
-	/**
 	 * The current object id for term-checking.
 	 *
 	 * @var null
@@ -113,9 +106,6 @@ class CMB2_Group_Map_Get extends CMB2_Group_Map_Base {
 		$this->object_ids = apply_filters( 'cmb2_group_map_get_group_ids', $object_ids, $group_field );
 
 		parent::__construct( $group_field );
-
-		// Need a separate object id array for taxonomy term value caching
-		$this->term_object_ids = $this->object_ids;
 	}
 
 	/**
@@ -276,6 +266,9 @@ class CMB2_Group_Map_Get extends CMB2_Group_Map_Base {
 
 		$taxonomy = $subfield->args( 'taxonomy' );
 		$terms = get_the_terms( $this->object, $taxonomy );
+		if ( ! $terms ) {
+			$terms = array();
+		}
 
 		// Cache this taxonomy's terms against the object ID.
 		$this->terms[ $this->object_id() ][ $taxonomy ] = $terms;
@@ -292,7 +285,7 @@ class CMB2_Group_Map_Get extends CMB2_Group_Map_Base {
 				: $terms[ key( $terms ) ]->slug;
 		}
 
-		return $terms;
+		return $terms ? $terms : array();
 	}
 
 	/**
@@ -304,6 +297,7 @@ class CMB2_Group_Map_Get extends CMB2_Group_Map_Base {
 	 * @param CMB2_Field  $subfield Sub-field object
 	 */
 	public function check_taxonomy_cache( CMB2_Field $subfield ) {
+
 		// No taxonomies for taxonomies
 		if ( $this->object_type( 'term' ) ) {
 			return;
@@ -311,8 +305,9 @@ class CMB2_Group_Map_Get extends CMB2_Group_Map_Base {
 
 		// If we're looking at a taxonomy field type, we have to do extra magic
 		if ( $taxonomy = $subfield->args( 'taxonomy' ) ) {
+
 			// Get the next object id by removing it from the front of the object ids
-			$this->term_object_id = array_shift( $this->term_object_ids );
+			$this->term_object_id = $this->object_ids[ $this->group_field->index ];
 
 			// If we have a cached value for this object id, then proceed
 			if (
