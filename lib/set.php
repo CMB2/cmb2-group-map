@@ -168,7 +168,6 @@ class CMB2_Group_Map_Set extends CMB2_Group_Map_Base {
 			return $data;
 		}
 
-
 		switch ( $this->object_type() ) {
 			case 'user':
 				$data['ID']   = isset( $data['ID'] ) ? $data['ID'] : 0;
