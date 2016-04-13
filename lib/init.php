@@ -96,6 +96,7 @@ class CMB2_Group_Map {
 		'missing_nonce'    => 'Missing required validation nonce or failed nonce validation.',
 		'delete_permanent' => 'This item will be detached from this post. Do you want to also delete it permanently?',
 		'could_not_delete' => 'The item could not be deleted.',
+		'item_id'          => '%s ID:',
 	);
 
 	/**
@@ -157,6 +158,8 @@ class CMB2_Group_Map {
 
 		$cmb->update_field_property( $field['id'], 'original_object_types', $cmb->prop( 'object_types' ) );
 
+		$cpt = get_post_type_object( $field['post_type_map'] );
+
 		// Add a hidden ID field to the group to store the referenced object id.
 		$cmb->add_group_field( $field['id'], array(
 			'id'              => self::object_id_key( $field['object_type_map'] ),
@@ -166,10 +169,11 @@ class CMB2_Group_Map {
 			'select_behavior' => 'replace',
 			'row_classes'     => 'hidden cmb2-group-map-id',
 			'options'         => array(
-				'find_text' => get_post_type_object( $field['post_type_map'] )->labels->search_items,
+				'find_text' => $cpt->labels->search_items,
 			),
 			'attributes' => array(
-				'class'=> 'regular-text cmb2-group-map-data',
+				'class' => 'regular-text cmb2-group-map-data',
+				'title' => sprintf( self::$strings['item_id'], $cpt->labels->singular_name ),
 			),
 		) );
 
@@ -234,8 +238,6 @@ class CMB2_Group_Map {
 	public function register_js( $dependencies ) {
 		$dependencies['cmb2_group_map'] = 'cmb2_group_map';
 		$assets_url = $this->get_url_from_dir( CMB2_GROUP_POST_MAP_DIR ) . 'lib/assets/';
-
-		error_log( '$src: '. print_r( $assets_url, true ) );
 
 		wp_register_script(
 			'cmb2_group_map',
