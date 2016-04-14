@@ -12,6 +12,7 @@ class CMB2_Group_Map {
 	protected static $single_instance = null;
 	protected $allowed_object_types = array( 'post', 'user', 'comment', 'term' );
 	protected $group_fields = array();
+	protected static $current_field = null;
 
 	public static $post_fields = array(
 		'ID'                    => '',
@@ -114,6 +115,25 @@ class CMB2_Group_Map {
 		add_action( 'cmb2_group_map_updated', array( $this, 'map_to_original_object' ), 10, 3 );
 		add_action( 'wp_ajax_cmb2_group_map_get_post_data', array( $this, 'get_ajax_input_data' ) );
 		add_action( 'wp_ajax_cmb2_group_map_delete_item', array( $this, 'ajax_delete_item' ) );
+
+		// Filter is removed by CMB2_Group_Map_Get::override_term_get(), if there is a value.
+		add_filter( 'get_the_terms', array( __CLASS__, 'override_term_get' ), 11, 3 );
+	}
+
+	public static function override_term_get( $terms, $object_id, $taxonomy ) {
+
+		/*
+		 * If we're rendering the map group
+		 * AND Filter wasn't removed by CMB2_Group_Map_Get::override_term_get(),
+		 * It means we should return an empty array
+		 * (because there isn't an actual post, so it would pull from the host,
+		 * which is not correct)
+		 */
+		if ( self::is_rendering() ) {
+			$terms = array();
+		}
+
+		return $terms;
 	}
 
 	public function setup_mapped_group_fields() {
@@ -212,6 +232,9 @@ class CMB2_Group_Map {
 	}
 
 	public function before_group( $args, $field ) {
+		// When the field starts rendering (now), store the current field object as property.
+		self::$current_field = $field;
+
 		// Check for stored 'before_group' parameter, and run that now.
 		if ( $field->args( 'cmb2_group_map_before_group' ) ) {
 			$field->peform_param_callback( 'cmb2_group_map_before_group' );
@@ -227,6 +250,9 @@ class CMB2_Group_Map {
 		}
 
 		echo '</div>';
+
+		// The field is now done rendering, so reset the current field property.
+		self::$current_field = null;
 
 		// Register our JS with the 'cmb2_script_dependencies' filter.
 		add_filter( 'cmb2_script_dependencies', array( $this, 'register_js' ) );
@@ -368,6 +394,14 @@ class CMB2_Group_Map {
 		} catch ( Exception $e ) {
 			wp_send_json_error( $e->getMessage() );
 		}
+	}
+
+	public static function is_rendering() {
+		return (bool) self::$current_field;
+	}
+
+	public static function get_current_field() {
+		return self::$current_field;
 	}
 
 }
