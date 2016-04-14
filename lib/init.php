@@ -320,6 +320,8 @@ class CMB2_Group_Map {
 			$field->peform_param_callback( 'cmb2_group_map_before_group' );
 		}
 
+		do_action( 'cmb2_group_map_before_group', $field );
+
 		echo '<div class="cmb2-group-map-group" data-nonce="'. wp_create_nonce( $field->id(), $field->id() ) .'" data-groupID="'. $field->id() .'">';
 	}
 
@@ -338,6 +340,8 @@ class CMB2_Group_Map {
 		}
 
 		echo '</div>';
+
+		do_action( 'cmb2_group_map_after_group', $field );
 
 		// The field is now done rendering, so reset the current field property.
 		self::$current_field = null;
