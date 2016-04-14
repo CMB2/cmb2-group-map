@@ -338,8 +338,6 @@ class CMB2_Group_Map_Get extends CMB2_Group_Map_Base {
 	 * @return array             Array of term objects.
 	 */
 	public function override_term_get( $terms, $object_id, $taxonomy ) {
-		remove_filter( 'get_the_terms', array( 'CMB2_Group_Map', 'override_term_get' ), 11, 3 );
-
 		// Final check if we do actually have the cached value
 		if ( $this->term_object_id && isset( $this->terms[ $this->term_object_id ][ $taxonomy ] ) ) {
 			// Ok we do, so let's return that instead.

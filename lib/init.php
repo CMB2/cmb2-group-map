@@ -173,34 +173,6 @@ class CMB2_Group_Map {
 		add_action( 'cmb2_group_map_updated', array( $this, 'map_to_original_object' ), 10, 3 );
 		add_action( 'wp_ajax_cmb2_group_map_get_post_data', array( $this, 'get_ajax_input_data' ) );
 		add_action( 'wp_ajax_cmb2_group_map_delete_item', array( $this, 'ajax_delete_item' ) );
-
-		// Filter is removed by CMB2_Group_Map_Get::override_term_get(), if there is a value.
-		add_filter( 'get_the_terms', array( __CLASS__, 'override_term_get' ), 11 );
-	}
-
-	/**
-	 * Override term-gettting when these field groups are rendering.
-	 *
-	 * @since  0.1.0
-	 *
-	 * @param  array  $terms Array of term values
-	 *
-	 * @return array         Array of term values (or empty array)
-	 */
-	public static function override_term_get( $terms ) {
-
-		/*
-		 * If we're rendering the map group
-		 * AND Filter wasn't removed by CMB2_Group_Map_Get::override_term_get(),
-		 * It means we should return an empty array
-		 * (because there isn't an actual post, so it would pull from the host,
-		 * which is not correct)
-		 */
-		if ( self::is_rendering() ) {
-			$terms = array();
-		}
-
-		return $terms;
 	}
 
 	/**
@@ -337,6 +309,9 @@ class CMB2_Group_Map {
 	 * @param CMB2_Field $field Field object.
 	 */
 	public function before_group( $args, CMB2_Field $field ) {
+		// Do not get terms from parent post object
+		add_filter( 'get_the_terms', array( __CLASS__, 'override_term_get' ), 9 );
+
 		// When the field starts rendering (now), store the current field object as property.
 		self::$current_field = $field;
 
@@ -369,6 +344,31 @@ class CMB2_Group_Map {
 
 		// Register our JS with the 'cmb2_script_dependencies' filter.
 		add_filter( 'cmb2_script_dependencies', array( $this, 'register_js' ) );
+	}
+
+	/**
+	 * Override term-gettting when these field groups are rendering.
+	 *
+	 * @since  0.1.0
+	 *
+	 * @param  array  $terms Array of term values
+	 *
+	 * @return array         Array of term values (or empty array)
+	 */
+	public static function override_term_get( $terms ) {
+
+		/*
+		 * If we're rendering the map group
+		 * AND Filter wasn't removed by CMB2_Group_Map_Get::override_term_get(),
+		 * It means we should return an empty array
+		 * (because there isn't an actual post, so it would pull from the host,
+		 * which is not correct)
+		 */
+		if ( self::is_rendering() ) {
+			$terms = array();
+		}
+
+		return $terms;
 	}
 
 	/**
