@@ -116,7 +116,7 @@ abstract class CMB2_Group_Map_Base {
 	}
 
 	/**
-	 * Chec if field id is one of the object type's default fields
+	 * Check if field id is one of the object type's default fields
 	 *
 	 * @since  0.1.0
 	 *
