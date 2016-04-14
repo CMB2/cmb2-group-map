@@ -74,3 +74,14 @@ $cmb->add_group_field( $group_field_id, array(
 	'type'     => 'taxonomy_multicheck',
 ) );
 ```
+
+## Screenshots
+
+1. Group Field Display  
+![Group Field Display](https://bytebucket.org/jtsternberg/cmb2-group-map/raw/34a20a8e0d31e0e3cc426f50ac05ee5cb19f52ce/screenshot-1.png?token=93e9beb2afc23a2ca5e7f48cf804a2672b60590e)
+
+2. Group pulled from custom-post-type post  
+![Group pulled from custom-post-type post](https://bytebucket.org/jtsternberg/cmb2-group-map/raw/34a20a8e0d31e0e3cc426f50ac05ee5cb19f52ce/screenshot-2.png?token=73ef0c95689064f2ce20990d8153ced4481093ee)
+
+3. Post-select search modal  
+![Post-select search modal](https://bytebucket.org/jtsternberg/cmb2-group-map/raw/34a20a8e0d31e0e3cc426f50ac05ee5cb19f52ce/screenshot-3.png?token=9fce8df6e720382cd5d2145257fe283d372ddd62)
