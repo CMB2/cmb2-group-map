@@ -92,7 +92,7 @@ class CMB2_Group_Map_Set extends CMB2_Group_Map_Base {
 			$data = $this->set_default_data( $data );
 		}
 
-		return $data;
+		return apply_filters( 'cmb2_group_map_set_object_data', $data, $this );
 	}
 
 	/**
@@ -189,7 +189,6 @@ class CMB2_Group_Map_Set extends CMB2_Group_Map_Base {
 			default:
 				$data['post_type']   = $this->group_field->args( 'post_type_map' );
 				$data['post_status'] = get_post_status( $this->group_field->object_id );
-				$data['post_parent'] = $this->group_field->object_id;
 				$data['ID']          = isset( $data['ID'] ) ? $data['ID'] : 0;
 				break;
 		}
