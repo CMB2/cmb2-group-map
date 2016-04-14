@@ -133,7 +133,6 @@ class CMB2_Group_Map_Ajax extends CMB2_Group_Map_Base {
 		}
 
 		$this->field_id = sanitize_text_field( $this->post_data['group_id'] );
-
 		$field = $this->find_group_field_array();
 
 		if ( ! wp_verify_nonce( $this->post_data['nonce'], $field['id'] ) ) {
@@ -147,8 +146,7 @@ class CMB2_Group_Map_Ajax extends CMB2_Group_Map_Base {
 
 		parent::__construct( $field_group );
 
-		// wp_send_json_success( $this->get_object( $this->new_object_id ) );
-		if ( $this->delete_object( $this->new_object_id ) ) {
+		if ( $this->delete_object( $this->object_id ) ) {
 			wp_send_json_success();
 		}
 
