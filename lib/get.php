@@ -105,7 +105,11 @@ class CMB2_Group_Map_Get extends CMB2_Group_Map_Base {
 		);
 
 		$object_ids = apply_filters( 'cmb2_group_map_get_group_ids', $object_ids, $group_field );
-		$this->object_ids = array_filter( $object_ids, 'get_post' );
+		if ( is_array( $object_ids ) ) {
+			$this->object_ids = array_filter( $object_ids, 'get_post' );
+		} else {
+			$this->object_ids = array();
+		}
 
 		parent::__construct( $group_field );
 	}
