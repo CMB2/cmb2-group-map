@@ -171,6 +171,7 @@ class CMB2_Group_Map {
 	protected function __construct() {
 		add_action( 'cmb2_after_init', array( $this, 'setup_mapped_group_fields' ) );
 		add_action( 'cmb2_group_map_updated', array( $this, 'map_to_original_object' ), 10, 3 );
+		add_action( 'cmb2_group_map_associated_object_deleted', array( $this, 'remove_from_original_object' ), 10, 3 );
 		add_action( 'wp_ajax_cmb2_group_map_get_post_data', array( $this, 'get_ajax_input_data' ) );
 		add_action( 'wp_ajax_cmb2_group_map_delete_item', array( $this, 'ajax_delete_item' ) );
 	}
@@ -547,14 +548,30 @@ class CMB2_Group_Map {
 			}
 		}
 
-		$meta_key    = $field->id();
-		$object_type = $field->args( 'original_object_type' );
-
 		if ( empty( $object_ids ) ) {
-			delete_metadata( $object_type, $original_object_id, $meta_key );
+			self::delete_map_meta( $field );
 		} else {
-			update_metadata( $object_type, $original_object_id, $meta_key, $object_ids );
+			self::update_map_meta( $field, $object_ids, true );
 		}
+	}
+
+	/**
+	 * Hooked into cmb2_group_map_associated_object_deleted, updates the mapped objects
+	 * on the original parent post.
+	 *
+	 * @since 0.1.0
+	 *
+	 * @param array      $deleted_id         ID of the deleted associated object.
+	 * @param int        $original_object_id Parent id
+	 * @param CMB2_Field $field              Group field object.
+	 */
+	public function remove_from_original_object( $deleted_id, $original_object_id, CMB2_Field $field ) {
+
+		if ( is_wp_error( $deleted_id ) ) {
+			return;
+		}
+
+		self::remove_from_map_meta( $field, $deleted_id );
 	}
 
 	/**
@@ -587,6 +604,169 @@ class CMB2_Group_Map {
 		} catch ( Exception $e ) {
 			wp_send_json_error( $e->getMessage() );
 		}
+	}
+
+	/**
+	 * Get the object ids value for a mapped group field.
+	 *
+	 * @since  0.1.0
+	 *
+	 * @param  array|CMB2_Field $group_field Either CMB2_Field group object, or array.
+	 *
+	 * @return mixed                         Result of get.
+	 */
+	public static function get_map_meta( $group_field ) {
+		$args = self::parse_group_field_args( $group_field );
+
+		if ( ! $args ) {
+			return false;
+		}
+
+		$object_ids = get_metadata( $args['object_type'], $args['object_id'], $args['id'], $args['single'] );
+
+		return is_array( $object_ids ) ? $object_ids : array();
+	}
+
+	/**
+	 * Updates the object ids value for a mapped group field.
+	 *
+	 * @since  0.1.0
+	 *
+	 * @param  array|CMB2_Field $group_field Either CMB2_Field group object, or array.
+	 *
+	 * @return mixed                         Result of update.
+	 */
+	public static function update_map_meta( $group_field, array $value, $replace = false ) {
+		$args = self::parse_group_field_args( $group_field );
+
+		if ( ! $args ) {
+			return false;
+		}
+
+		if ( ! $replace ) {
+			$existing = self::get_map_meta( $args );
+
+			if ( ! is_array( $existing ) ) {
+				return false;
+			}
+
+			$value = array_merge( $value, $existing );
+			$value = array_unique( $value );
+		}
+
+		return update_metadata( $args['object_type'], $args['object_id'], $args['id'], $value );
+	}
+
+	/**
+	 * Deletes the object ids value for a mapped group field.
+	 *
+	 * @since  0.1.0
+	 *
+	 * @param  array|CMB2_Field $group_field Either CMB2_Field group object, or array.
+	 *
+	 * @return mixed                         Result of delete.
+	 */
+	public static function delete_map_meta( $group_field ) {
+		$args = self::parse_group_field_args( $group_field );
+
+		if ( ! $args ) {
+			return false;
+		}
+
+		return delete_metadata( $args['object_type'], $args['object_id'], $args['id'] );
+	}
+
+	/**
+	 * Removes object id(s) from value for a mapped group field.
+	 *
+	 * @since  0.1.0
+	 *
+	 * @param  array|CMB2_Field $group_field Either CMB2_Field group object, or array.
+	 *
+	 * @return mixed                         Result of removal.
+	 */
+	public static function remove_from_map_meta( $group_field, $remove ) {
+		$args = self::parse_group_field_args( $group_field );
+
+		if ( ! $args ) {
+			return false;
+		}
+
+		$existing = self::get_map_meta( $args );
+
+		// Nothing to remove.
+		if ( ! $existing || empty( $existing ) ) {
+			return false;
+		}
+
+		$remove = is_array( $remove ) ? $remove : array( $remove );
+		$removed = array();
+
+		foreach ( $remove as $id ) {
+			if ( in_array( $id, $existing ) ) {
+				// Search
+				$pos = array_search( $id, $existing );
+				// Remove from array
+				unset( $existing[ $pos ] );
+
+				$removed[] = $id;
+			}
+		}
+
+		// Nothing was removed, so don't proceed.
+		if ( empty( $removed ) ) {
+			return $removed;
+		}
+
+		// Ok, resave the meta value w/ the removals complete.
+		if ( empty( $existing ) ) {
+			// if it's now empty, just delete it.
+			$result = self::delete_map_meta( $args );
+		} else {
+			$result = self::update_map_meta( $args, $existing, true );
+		}
+
+		// If update was complete, send back the array of the leftover IDs.
+		return $result ? $existing : false;
+	}
+
+	/**
+	 * Gets the object_type, object_id, and field id (meta key) parameters for
+	 * get/update/delete_metadata function calls.
+	 *
+	 * Can be provided a CMB2_Field object or an array.
+	 *
+	 * @since  0.1.0
+	 *
+	 * @param  array|CMB2_Field $group_field Either CMB2_Field group object, or array.
+	 *
+	 * @return array|false                   Array of args, or false if 'id' was not found.
+	 */
+	protected static function parse_group_field_args( $group_field ) {
+		if ( is_a( $group_field, 'CMB2_Field' ) ) {
+			$args['object_type'] = $group_field->args( 'original_object_type' )
+				? $group_field->args( 'original_object_type' )
+				: $group_field->object_type;
+			$args['object_id']   = $group_field->object_id;
+			$args['id']          = $group_field->id();
+			$args['single']      = true;
+
+		} else {
+
+			$args = wp_parse_args( $group_field, array(
+				'object_type' => 'post',
+				'object_id'   => get_the_id(),
+				'id'          => '',
+				'single'      => true,
+			) );
+
+		}
+
+		if ( ! $args['id'] ) {
+			return false;
+		}
+
+		return $args;
 	}
 
 	/**

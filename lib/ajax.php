@@ -61,7 +61,7 @@ class CMB2_Group_Map_Ajax extends CMB2_Group_Map_Base {
 	 * @since 0.1.0
 	 */
 	public function __construct( array $post_data, array $group_fields ) {
-		if ( ! isset( $post_data['post_id'] ) ) {
+		if ( ! isset( $post_data['post_id'], $post_data['host_id'] ) ) {
 			$this->throw_error( __LINE__, 'missing_required' );
 		}
 
@@ -71,6 +71,13 @@ class CMB2_Group_Map_Ajax extends CMB2_Group_Map_Base {
 			$this->throw_error( __LINE__, 'missing_required' );
 		}
 
+		$host = get_post( absint( $post_data['host_id'] ) );
+
+		if ( ! $host ) {
+			$this->throw_error( __LINE__, 'missing_required' );
+		}
+
+		$this->host_id      = $host->ID;
 		$this->post_data    = $post_data;
 		$this->object_id    = $post->ID;
 		$this->group_fields = $group_fields;
@@ -82,26 +89,26 @@ class CMB2_Group_Map_Ajax extends CMB2_Group_Map_Base {
 	 * @since  0.1.0
 	 */
 	public function send_input_data() {
-		$this->init_args();
+		$this->init_send_args();
 		$field = $this->find_group_field_array();
 
 		// Need to override the group id fetching and splice in our own new post id.
 		add_filter( 'cmb2_group_map_get_group_ids', array( $this, 'override_ids_get' ), 10, 2 );
 
-		$field_group = new CMB2_Field( array(
+		$group_field = new CMB2_Field( array(
 			'field_args'  => $field,
 			'object_type' => 'post',
 			'object_id'   => $this->host_id,
 		) );
-		$field_group->index = $this->index;
+		$group_field->index = $this->index;
 
-		parent::__construct( $field_group );
+		parent::__construct( $group_field );
 
 		$inputs = array();
-		foreach ( $field_group->fields() as $index => $field_args ) {
+		foreach ( $group_field->fields() as $index => $field_args ) {
 			$field = new CMB2_Field( array(
 				'field_args'  => $field_args,
-				'group_field' => $field_group,
+				'group_field' => $group_field,
 			) );
 
 			$field_type = new CMB2_Types( $field );
@@ -139,16 +146,21 @@ class CMB2_Group_Map_Ajax extends CMB2_Group_Map_Base {
 			$this->throw_error( __LINE__, 'missing_nonce' );
 		}
 
-		$field_group = new CMB2_Field( array(
+		$group_field = new CMB2_Field( array(
 			'field_args'  => $field,
 			'object_type' => 'post',
+			'object_id'   => $this->host_id,
 		) );
 
-		parent::__construct( $field_group );
+		parent::__construct( $group_field );
 
 		if ( $this->delete_object( $this->object_id ) ) {
+			// Trigger an action after objects were updated/created
+			do_action( 'cmb2_group_map_associated_object_deleted', $this->object_id, $this->host_id, $group_field );
+
 			wp_send_json_success();
 		}
+
 
 		$this->throw_error( __LINE__, 'could_not_delete' );
 	}
@@ -158,18 +170,11 @@ class CMB2_Group_Map_Ajax extends CMB2_Group_Map_Base {
 	 *
 	 * @since  0.1.0.
 	 */
-	protected function init_args() {
-		if ( ! isset( $this->post_data['host_id'], $this->post_data['fieldName'] ) ) {
+	protected function init_send_args() {
+		if ( ! isset( $this->post_data['fieldName'] ) ) {
 			$this->throw_error( __LINE__, 'missing_required' );
 		}
 
-		$host = get_post( absint( $this->post_data['host_id'] ) );
-
-		if ( ! $host ) {
-			$this->throw_error( __LINE__, 'missing_required' );
-		}
-
-		$this->host_id  = $host->ID;
 		$parts          = explode( '[', sanitize_text_field( $this->post_data['fieldName'] ) );
 		$this->field_id = array_shift( $parts );
 		$index          = explode( ']', array_shift( $parts ) );

@@ -97,12 +97,7 @@ class CMB2_Group_Map_Get extends CMB2_Group_Map_Base {
 	public function __construct( CMB2_Field $group_field ) {
 
 		// Get meta before we change the group field's object type (in the parent constructor)
-		$object_ids = get_metadata(
-			$group_field->object_type,
-			$group_field->object_id,
-			$group_field->id( true ),
-			1
-		);
+		$object_ids = CMB2_Group_Map::get_map_meta( $group_field );
 
 		$object_ids = apply_filters( 'cmb2_group_map_get_group_ids', $object_ids, $group_field );
 		if ( is_array( $object_ids ) ) {
