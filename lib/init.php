@@ -221,6 +221,9 @@ class CMB2_Group_Map {
 	 * @param array $field Group field config array.
 	 */
 	protected function setup_mapped_group_field( CMB2 $cmb, array $field ) {
+		// Helpful reference back to the CMB object.
+		$field['cmb_id'] = $cmb->cmb_id;
+
 		$field = $this->set_object_type( $cmb, $field );
 
 		$this->set_before_after_group_hooks( $cmb, $field );
@@ -607,6 +610,25 @@ class CMB2_Group_Map {
 	 */
 	public static function get_current_field() {
 		return self::$current_field;
+	}
+
+	/**
+	 * Magic getter for our object.
+	 *
+	 * @since  0.1.0
+	 *
+	 * @param string $field
+	 * @throws Exception Throws an exception if the field is invalid.
+	 *
+	 * @return mixed
+	 */
+	public function __get( $field ) {
+		switch ( $field ) {
+			case 'group_fields':
+				return $this->{$field};
+			default:
+				throw new Exception( 'Invalid ' . __CLASS__ . ' property: ' . $field );
+		}
 	}
 
 }
