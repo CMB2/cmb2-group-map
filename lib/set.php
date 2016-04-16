@@ -189,6 +189,7 @@ class CMB2_Group_Map_Set extends CMB2_Group_Map_Base {
 			default:
 				$data['post_type']   = $this->group_field->args( 'post_type_map' );
 				$data['post_status'] = get_post_status( $this->group_field->object_id );
+				$data['post_date']   = get_post_field( 'post_date', $this->group_field->object_id, 'db' );
 				$data['ID']          = isset( $data['ID'] ) ? $data['ID'] : 0;
 				break;
 		}
