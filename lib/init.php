@@ -172,6 +172,7 @@ class CMB2_Group_Map {
 		add_action( 'cmb2_after_init', array( $this, 'setup_mapped_group_fields' ) );
 		add_action( 'cmb2_group_map_updated', array( $this, 'map_to_original_object' ), 10, 3 );
 		add_action( 'cmb2_group_map_associated_object_deleted', array( $this, 'remove_from_original_object' ), 10, 3 );
+		add_action( 'before_delete_post', array( $this, 'delete_associated_objects' ) );
 		add_action( 'wp_ajax_cmb2_group_map_get_post_data', array( $this, 'get_ajax_input_data' ) );
 		add_action( 'wp_ajax_cmb2_group_map_delete_item', array( $this, 'ajax_delete_item' ) );
 	}
@@ -229,7 +230,9 @@ class CMB2_Group_Map {
 
 		$this->set_before_after_group_hooks( $cmb, $field );
 
-		$cmb->update_field_property( $field['id'], 'original_object_types', $cmb->prop( 'object_types' ) );
+		$field['original_object_types'] = $cmb->prop( 'object_types' );
+
+		$cmb->update_field_property( $field['id'], 'original_object_types', $field['original_object_types'] );
 
 		$cpt = get_post_type_object( $field['post_type_map'] );
 
@@ -572,6 +575,61 @@ class CMB2_Group_Map {
 		}
 
 		self::remove_from_map_meta( $field, $deleted_id );
+	}
+
+	/**
+	 * When deleting a post, we need to delete any mapped posts, if they exist.
+	 * If the group field has a 'sync_delete' param that is set to false,
+	 * this deletion sync will be disabled for that mapping.
+	 *
+	 * This can also be disabled with the 'cmb2_group_map_sync_delete' filter.
+	 *
+	 * @since  0.1.0
+	 *
+	 * @param  int $post_id ID of the post being deleted.
+	 */
+	public function delete_associated_objects( $post_id ) {
+		$post_type = get_post_type();
+
+		foreach ( $this->group_fields as $cmb_id => $fields ) {
+			foreach ( $fields as $field_id => $field ) {
+
+				// Only sync for 'post' object type.
+				if ( 'post' !== $field['object_type_map'] ) {
+					continue;
+				}
+
+				$types = $field['original_object_types'];
+				$types = is_array( $types ) ? $types : array( $types );
+
+				// Not the field we're looking for.
+				if ( ! in_array( $post_type, $types, 1 ) ) {
+					continue;
+				}
+
+				// If $field['sync_delete'] is false, then do not sync deletion.
+				if ( isset( $field['sync_delete'] ) && ! $field['sync_delete'] ) {
+					continue;
+				}
+
+				// If 'cmb2_group_map_sync_delete' filter value is false, then do not sync deletion.
+				if ( ! apply_filters( 'cmb2_group_map_sync_delete', true, $post_id, $field ) ) {
+					continue;
+				}
+
+				$object_ids = get_post_meta( $post_id, $field['id'], 1 );
+
+				// If no connected posts to delete.
+				if ( ! is_array( $object_ids ) || empty( $object_ids ) ) {
+					continue;
+				}
+
+				// Ok, delete them.
+				foreach ( $object_ids as $id ) {
+					wp_delete_post( $id, 1 );
+				}
+			}
+		}
 	}
 
 	/**
