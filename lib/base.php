@@ -26,9 +26,9 @@ abstract class CMB2_Group_Map_Base {
 	 * @param CMB2_Field $group_field Group field to get the values for.
 	 */
 	public function __construct( CMB2_Field $group_field ) {
-		$group_field->args['original_object_type'] = $group_field->object_type;
-		$group_field->object_type                  = $group_field->args( 'object_type_map' );
-		$this->group_field                         = $group_field;
+		$group_field->set_prop( 'original_object_type', $group_field->object_type );
+		$group_field->object_type( $group_field->args( 'object_type_map' ) );
+		$this->group_field = $group_field;
 	}
 
 	/**
