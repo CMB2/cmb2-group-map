@@ -4,7 +4,6 @@
  *
  * @todo Make this work for other destination object types
  * @todo Document file/methods, etc
- * @todo Add README.md
  */
 class CMB2_Group_Map {
 
