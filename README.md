@@ -1,7 +1,7 @@
 CMB2 Group Map
 ======================
 
-CMB2 addon which allows you to use CMB2 group fields to manage custom post type entries. You will need to run `composer install` in this plugin's directory to get the required dependencies.
+Originally created for [Post Status](https://poststatus.com/) to associate footnotes with notes, This CMB2 addon allows you to use CMB2 group fields to manage custom post type entries. You will need to run `composer install` in this plugin's directory to get the required dependencies.
 
 A few details:
 

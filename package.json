@@ -1,0 +1,19 @@
+{
+	"name": "cmb2-group-map",
+	"title": "CMB2 Group Map",
+	"version": "0.1.0",
+	"description": "CMB2 addon which allows you to use CMB2 group fields to manage custom post type entries.",
+	"author": {
+		"name": "zao",
+		"url": "http://zao.is/"
+	},
+	"license": "GPLv2",
+	"devDependencies": {
+	    "grunt": "latest",
+	    "grunt-contrib-watch": "latest",
+	    "grunt-wp-i18n": "latest",
+	    "grunt-contrib-compress": "~1.3.0",
+	    "grunt-githooks": "~0.6.0",
+	    "load-grunt-tasks": "latest"
+	}
+}

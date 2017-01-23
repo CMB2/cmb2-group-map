@@ -1,17 +1,17 @@
 {
-    "name": "jtsternberg/cmb2-group-map",
+    "name": "zao-web/cmb2-group-map",
     "description": "Allows using a custom post type for a CMB2 Group data store.",
     "license": "GPL-2.0+",
     "authors": [
         {
-            "name": "jtsternberg",
-            "email": "justin@dsgnwrks.pro",
-            "homepage": "http://dsgnwrks.pro/",
+            "name": "zao",
+            "email": "jt@zao.is",
+            "homepage": "http://zao.is/",
             "role": "Developer"
         }
     ],
     "keywords": ["wordpress", "plugin", "metabox","search","field","CMB2"],
-    "homepage": "http://dsgnwrks.pro",
+    "homepage": "http://zao.is",
     "type": "wordpress-plugin",
     "require": {
         "php": ">5.2.4",

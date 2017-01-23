@@ -1,21 +1,31 @@
 <?php
 /**
+ * Plugin Name: CMB2 Group Map
+ * Plugin URI: https://github.com/zao-web/cmb2-group-map
+ * Description: CMB2 addon which allows you to use CMB2 group fields to manage custom post type entries.
+ * Author: Zao
+ * Author URI: http://zao.is
+ * Version: 0.1.0
+ * License: GPLv2
+*/
+
+/**
  * CMB2_Group_Map loader
  *
  * Handles checking for and smartly loading the newest version of this library.
  *
  * @category  WordPressLibrary
  * @package   CMB2_Group_Map
- * @author    Justin Sternberg <justin@dsgnwrks.pro>
- * @copyright 2016 Justin Sternberg <justin@dsgnwrks.pro>
+ * @author    Zao <jt@zao.is>
+ * @copyright 2016 Zao <jt@zao.is>
  * @license   GPL-2.0+
  * @version   0.1.0
- * @link      http://dsgnwrks.pro
+ * @link      https://github.com/zao-web/cmb2-group-map
  * @since     0.1.0
  */
 
 /**
- * Copyright (c) 2016 Justin Sternberg (email : justin@dsgnwrks.pro)
+ * Copyright (c) 2016 Zao (email : jt@zao.is)
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2 or, at
@@ -45,10 +55,10 @@ if ( ! class_exists( 'CMB2_Group_Map_010', false ) ) {
 	 *
 	 * @category WordPressLibrary
 	 * @package  CMB2_Group_Map
-	 * @author   Justin Sternberg <justin@dsgnwrks.pro>
+	 * @author   Zao <jt@zao.is>
 	 * @license  GPL-2.0+
 	 * @version  0.1.0
-	 * @link     http://dsgnwrks.pro
+	 * @link     https://github.com/zao-web/cmb2-group-map
 	 * @since    0.1.0
 	 */
 	class CMB2_Group_Map_010 {
