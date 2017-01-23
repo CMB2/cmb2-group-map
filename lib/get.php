@@ -137,7 +137,7 @@ class CMB2_Group_Map_Get extends CMB2_Group_Map_Base {
 			if ( $this->object = $this->get_object( $object_id ) ) {
 
 				// Temp. set the group field's object id to this object id
-				$this->group_field->object_id = $object_id;
+				$this->group_field->object_id( $object_id );
 
 				// initiate the cached values for this object id
 				$this->value[ $this->group_field->index ] = array();
@@ -159,7 +159,7 @@ class CMB2_Group_Map_Get extends CMB2_Group_Map_Base {
 		}
 
 		// Restore the group field object id
-		$this->group_field->object_id = $stored_id;
+		$this->group_field->object_id( $stored_id );
 
 		// Return the full value array
 		return $this->value;
